@@ -193,7 +193,7 @@ Token	*tokenize(char *p)
 	return (head.next);
 }
 
-// 中小構文木のノードの種類
+// 抽象構文木のノードの種類
 typedef enum
 {
 	ND_ADD,	// +
@@ -211,7 +211,7 @@ typedef enum
 
 typedef struct Node	Node;
 
-// 中小構文木のノードの型
+// 抽象構文木のノードの型
 struct Node
 {
 	NodeKind	kind;	// ノードの型
@@ -385,7 +385,7 @@ int	main(int argc, char **argv)
 	printf(".global main\n\n");
 	printf("main:\n");
 
-	// 中小構文木を下りながらコード生成
+	// 抽象構文木を下りながらコード生成
 	gen(node);
 
 	// スタックトップに式全体の値が残っているはずなので
