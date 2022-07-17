@@ -159,6 +159,7 @@ Token	*tokenize(char *p)
 		if (strncmp(p, "<=", 2) == 0 || strncmp(p, ">=", 2) == 0)
 		{
 			cur = new_token(TK_RESERVED, cur, p++, 2);
+			p++;
 			continue ;
 		}
 
@@ -173,6 +174,7 @@ Token	*tokenize(char *p)
 		if (strncmp(p, "==", 2) == 0 || strncmp(p, "!=", 2) == 0)
 		{
 			cur = new_token(TK_RESERVED, cur, p++, 2);
+			p++;
 			continue ;
 		}
 
@@ -359,6 +361,27 @@ void	gen(Node *node)
 		case ND_DIV:
 			printf("\tcqo\n");
 			printf("\tidiv rdi\n");
+			break ;
+		case ND_LT:
+		case ND_GT:
+		case ND_LTE:
+		case ND_GTE:
+		case ND_EQ:
+		case ND_NEQ:
+			if (node->kind == ND_LT || node->kind == ND_LTE ||
+				node->kind == ND_EQ || node->kind == ND_NEQ)
+				printf("\tcmp rax, rdi\n");
+			else
+				printf("\tcmp rdi, rax\n");
+			if (node->kind == ND_LT || node->kind == ND_GT)
+				printf("\tsetl al\n");
+			else if (node->kind == ND_LTE || node->kind == ND_GTE)
+				printf("\tsetle al\n");
+			else if (node->kind == ND_EQ)
+				printf("\tsete al\n");
+			else
+				printf("\tsetne al\n");
+			printf("\tmovzb rax, al\n");
 			break ;
 		default:
 			break ;
