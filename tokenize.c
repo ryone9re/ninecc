@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-// エラーを報告するための関数
 // printfと同じ引数を取る
 void	error(char *fmt, ...)
 {
@@ -43,6 +42,19 @@ bool	consume(char *op)
 	return (true);
 }
 
+// 次のトークンがidentifierのときには､トークンを1つ読み進めて
+// そのトークンを返す｡それ以外の場合にはNULLを返す｡
+Token	*consume_ident()
+{
+	if (token->kind == TK_IDENT)
+	{
+		Token	*tok = token;
+		token = token->next;
+		return (tok);
+	}
+	return (NULL);
+}
+
 // 次のトークンが期待している記号のときには､トークンを1つ読み進める｡
 // それ以外の場合にはエラーを報告する｡
 void	expect(char *op)
@@ -74,8 +86,14 @@ bool	at_eof()
 	return (token->kind == TK_EOF);
 }
 
+// トークンを構成する文字か判定
+int	is_tokstr(char c)
+{
+	return (isalnum(c) || c == '_');
+}
+
 // 新しいトークンを作成してcurに繋げる
-Token	*new_token(TokenKind kind, Token *cur, char *str, size_t len)
+static Token	*new_token(TokenKind kind, Token *cur, char *str, size_t len)
 {
 	Token	*tok = (Token *)calloc(1, sizeof(Token));
 	tok->kind = kind;
@@ -98,6 +116,14 @@ Token	*tokenize(char *p)
 		if (isspace(*p))
 		{
 			p++;
+			continue ;
+		}
+
+		// return文
+		if (strncmp(p, "return", 6) == 0 && !is_tokstr(p[6]))
+		{
+			cur = new_token(TK_RETURN, cur, p, 6);
+			p = p + 6;
 			continue ;
 		}
 
@@ -152,6 +178,32 @@ Token	*tokenize(char *p)
 			continue ;
 		}
 
+		// 代入
+		if (strncmp(p, "=", 1) == 0)
+		{
+			cur = new_token(TK_RESERVED, cur, p++, 1);
+			continue ;
+		}
+
+		// 文終了
+		if (strncmp(p, ";", 1) == 0)
+		{
+			cur = new_token(TK_RESERVED, cur, p++, 1);
+			continue ;
+		}
+
+		// 識別子
+		if (isalpha(*p) || *p == '_')
+		{
+			size_t	len = 0;
+			while (is_tokstr(p[len]))
+				len++;
+			cur = new_token(TK_IDENT, cur, p, len);
+			p = p + len;
+			continue ;
+		}
+
+		// 数値
 		if (isdigit(*p))
 		{
 			size_t	len = 0;
