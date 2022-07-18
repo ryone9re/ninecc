@@ -16,7 +16,6 @@ typedef enum
 	TK_RESERVED,	// 記号
 	TK_IDENT,		// 識別子
 	TK_NUM,			// 整数トークン
-	TK_RETURN,		// return
 	TK_EOF,			// 入力の終わりを示すトークン
 }	TokenKind;
 
@@ -54,6 +53,7 @@ typedef enum
 	ND_EQ,		// ==
 	ND_NEQ,		// !=
 	ND_RETURN,	// return
+	ND_IF,		// if
 	ND_LVAR,	// ローカル変数
 	ND_NUM,		// 整数
 }	NodeKind;
@@ -61,9 +61,16 @@ typedef enum
 // 抽象構文木のノードの型
 struct Node
 {
+	Node		*next;	// 次のNode
 	NodeKind	kind;	// ノードの型
 	Node		*lhs;	// 左辺
 	Node		*rhs;	// 右辺
+
+	// if
+	Node		*cond;
+	Node		*then;
+	Node		*els;
+
 	size_t		val;	// kindがND_NUMの場合のみ使う
 	size_t		offset;	// kindがoffsetの場合のみ使う
 };
@@ -87,13 +94,13 @@ void	error_at(char *loc, char *fmt, ...);
 bool	consume(char *op);
 Token	*consume_ident();
 void	expect(char *op);
-int	expect_number();
+int		expect_number();
 bool	at_eof();
-int	is_tokstr(char c);
-Token	*tokenize(char *p);
+int		is_tokstr(char c);
+Token	*tokenize(void);
 
 /* parse.c */
-void	program();
+void	program(void);
 
 /* codegen.c */
 LVar	*find_lvar(Token *tok);

@@ -86,12 +86,6 @@ bool	at_eof()
 	return (token->kind == TK_EOF);
 }
 
-// トークンを構成する文字か判定
-int	is_tokstr(char c)
-{
-	return (isalnum(c) || c == '_');
-}
-
 // 新しいトークンを作成してcurに繋げる
 static Token	*new_token(TokenKind kind, Token *cur, char *str, size_t len)
 {
@@ -103,11 +97,53 @@ static Token	*new_token(TokenKind kind, Token *cur, char *str, size_t len)
 	return (tok);
 }
 
-// 入力文字列pをトークナイズしてそれを返す
-Token	*tokenize(char *p)
+// pがqで始まるか判定
+static bool	starts_with(char *p, char *q)
 {
-	Token	head;
-	head.next = NULL;
+	return (strncmp(p, q, strlen(q)) == 0);
+}
+
+// identifierを構成する文字か判定
+int	is_tokstr(char c)
+{
+	return (isalnum(c) || c == '_');
+}
+
+// 予約語か確認
+static char	*starts_with_reserved(char *p)
+{
+	size_t	l = strlen(p);
+
+	static char	*kw[] = {"return", "if", "else"};
+
+	for (size_t i = 0; i < sizeof(kw) / sizeof(*kw); i++)
+	{
+		size_t	len = strlen(kw[i]);
+		if (l < len)
+			continue ;
+		if (starts_with(p, kw[i]) && !is_tokstr(p[len]))
+			return (kw[i]);
+	}
+
+	static char	*ops[] = {"==", "!=", "<=", ">="};
+
+	for (size_t i = 0; i < sizeof(ops) / sizeof(*ops); i++)
+	{
+		size_t	len = strlen(ops[i]);
+		if (l < len)
+			continue ;
+		if (starts_with(p, ops[i]))
+			return (ops[i]);
+	}
+
+	return (NULL);
+}
+
+// 入力文字列pをトークナイズしてそれを返す
+Token	*tokenize()
+{
+	char	*p = user_input;
+	Token	head = {};
 	Token	*cur = &head;
 
 	while (*p)
@@ -119,74 +155,18 @@ Token	*tokenize(char *p)
 			continue ;
 		}
 
-		// return文
-		if (strncmp(p, "return", 6) == 0 && !is_tokstr(p[6]))
+		// 予約語
+		char	*q = starts_with_reserved(p);
+		if (q)
 		{
-			cur = new_token(TK_RETURN, cur, p, 6);
-			p = p + 6;
+			size_t	len = strlen(q);
+			cur = new_token(TK_RESERVED, cur, q, len);
+			p = p + len;
 			continue ;
 		}
 
-		// 括弧
-		if (*p == '(' || *p == ')')
-		{
-			cur = new_token(TK_RESERVED, cur, p++, 1);
-			continue ;
-		}
-
-		// 単項演算子
-		if (*p == '+' || *p == '-')
-		{
-			cur = new_token(TK_RESERVED, cur, p++, 1);
-			continue ;
-		}
-
-		// 乗除算
-		if (*p == '*' || *p == '/')
-		{
-			cur = new_token(TK_RESERVED, cur, p++, 1);
-			continue ;
-		}
-
-		// 加減算
-		if (*p == '+' || *p == '-')
-		{
-			cur = new_token(TK_RESERVED, cur, p++, 1);
-			continue ;
-		}
-
-		// 比較演算子(2字)
-		if (strncmp(p, "<=", 2) == 0 || strncmp(p, ">=", 2) == 0)
-		{
-			cur = new_token(TK_RESERVED, cur, p++, 2);
-			p++;
-			continue ;
-		}
-
-		// 比較演算子(1字)
-		if (*p == '<' || *p == '>')
-		{
-			cur = new_token(TK_RESERVED, cur, p++, 1);
-			continue ;
-		}
-
-		// 比等価演算子
-		if (strncmp(p, "==", 2) == 0 || strncmp(p, "!=", 2) == 0)
-		{
-			cur = new_token(TK_RESERVED, cur, p++, 2);
-			p++;
-			continue ;
-		}
-
-		// 代入
-		if (strncmp(p, "=", 1) == 0)
-		{
-			cur = new_token(TK_RESERVED, cur, p++, 1);
-			continue ;
-		}
-
-		// 文終了
-		if (strncmp(p, ";", 1) == 0)
+		// 区切り文字
+		if (ispunct(*p))
 		{
 			cur = new_token(TK_RESERVED, cur, p++, 1);
 			continue ;
@@ -195,22 +175,20 @@ Token	*tokenize(char *p)
 		// 識別子
 		if (isalpha(*p) || *p == '_')
 		{
-			size_t	len = 0;
-			while (is_tokstr(p[len]))
-				len++;
-			cur = new_token(TK_IDENT, cur, p, len);
-			p = p + len;
+			char	*q = p++;
+			while (is_tokstr(*p))
+				p++;
+			cur = new_token(TK_IDENT, cur, q, p - q);
 			continue ;
 		}
 
 		// 数値
 		if (isdigit(*p))
 		{
-			size_t	len = 0;
-			while (isdigit(p[len]))
-				len++;
-			cur = new_token(TK_NUM, cur, p, len);
+			char	*q = p;
+			cur = new_token(TK_NUM, cur, p, 0);
 			cur->val = strtol(p, &p, 10);
+			cur->len = p - q;
 			continue ;
 		}
 

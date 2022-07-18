@@ -2,8 +2,9 @@
 #include <stdio.h>
 #include <string.h>
 
-Node	*code[100];
-LVar	*locals;
+Node			*code[100];
+LVar			*locals;
+static size_t	labelseq = 1;
 
 static void	gen_lval(Node *node)
 {
@@ -34,6 +35,30 @@ void	gen(Node *node)
 		printf("\tmov rsp, rbp\n");
 		printf("\tpop rbp\n");
 		printf("\tret\n");
+		return ;
+	}
+
+	if (node->kind == ND_IF)
+	{
+		gen(node->cond);
+		printf("\tpop rax\n");
+		printf("\tcmp rax, 0\n");
+		if (node->els)
+		{
+			printf("\tje .Lelse%ld\n", labelseq);
+			gen(node->then);
+			printf("\tjmp .Lend%ld\n", labelseq);
+			printf(".Lelse%ld:\n", labelseq);
+			gen(node->els);
+			printf("\tjmp .Lend%ld\n", labelseq);
+		}
+		else
+		{
+			printf("\tje .Lend%ld\n", labelseq);
+			gen(node->then);
+		}
+		printf(".Lend%ld:\n", labelseq);
+		labelseq++;
 		return ;
 	}
 

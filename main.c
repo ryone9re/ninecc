@@ -14,7 +14,7 @@ int	main(int argc, char **argv)
 
 	// トークナイズしてパースする
 	user_input = argv[1];
-	token = tokenize(user_input);
+	token = tokenize();
 	program();
 
 	// アセンブリの前半部分を出力
@@ -27,9 +27,9 @@ int	main(int argc, char **argv)
 		stack_size = stack_size + 8;
 
 	// プロローグ
-	printf("  push rbp\n");
-	printf("  mov rbp, rsp\n");
-	printf("  sub rsp, %ld\n", stack_size);
+	printf("\tpush rbp\n");
+	printf("\tmov rbp, rsp\n");
+	printf("\tsub rsp, %ld\n", stack_size);
 
 	// 先頭の式から順にコード生成
 	for (size_t i = 0; code[i]; i++)
@@ -43,9 +43,9 @@ int	main(int argc, char **argv)
 
 	// エピローグ
 	printf(".L.return:\n");
-	printf("  mov rsp, rbp\n");
-	printf("  pop rbp\n");
-	printf("  ret\n");
+	printf("\tmov rsp, rbp\n");
+	printf("\tpop rbp\n");
+	printf("\tret\n");
 
 	return (0);
 }
