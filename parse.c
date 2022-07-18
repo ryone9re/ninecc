@@ -30,6 +30,121 @@ static Node	*mul();
 static Node	*unary();
 static Node	*primary();
 
+void	program()
+{
+	int	i = 0;
+
+	while (!at_eof() && i < 100)
+		code[i++] = stmt();
+	code[i] = NULL;
+}
+
+static Node	*stmt()
+{
+	Node	*node;
+
+	if (token->kind == TK_RETURN)
+	{
+		token = token->next;
+		node = (Node *)calloc(1, sizeof(Node));
+		node->kind = ND_RETURN;
+		node->lhs = expr();
+	}
+	else
+	{
+		node = expr();
+	}
+	expect(";");
+	return (node);
+}
+
+static Node	*expr()
+{
+	return (assign());
+}
+
+static Node	*assign()
+{
+	Node	*node = equality();
+
+	if (consume("="))
+		node = new_node(ND_ASSIGN, node, assign());
+	return (node);
+}
+
+static Node	*equality()
+{
+	Node	*node = relational();
+
+	while (true)
+	{
+		if (consume("=="))
+			node = new_node(ND_EQ, node, relational());
+		else if (consume("!="))
+			node = new_node(ND_NEQ, node, relational());
+		else
+			return (node);
+	}
+}
+
+static Node	*relational()
+{
+	Node	*node = add();
+
+	while (true)
+	{
+		if (consume("<="))
+			node = new_node(ND_LTE, node, add());
+		else if (consume(">="))
+			node = new_node(ND_GTE, node, add());
+		else if (consume("<"))
+			node = new_node(ND_LT, node, add());
+		else if (consume(">"))
+			node = new_node(ND_GT, node, add());
+		else
+			return (node);
+	}
+}
+
+static Node	*add()
+{
+	Node	*node = mul();
+
+	while (true)
+	{
+		if (consume("+"))
+			node = new_node(ND_ADD, node, mul());
+		else if (consume("-"))
+			node = new_node(ND_SUB, node, mul());
+		else
+			return (node);
+	}
+}
+
+static Node	*mul()
+{
+	Node	*node = unary();
+
+	while (true)
+	{
+		if (consume("*"))
+			node = new_node(ND_MUL, node, unary());
+		else if (consume("/"))
+			node = new_node(ND_DIV, node, unary());
+		else
+			return (node);
+	}
+}
+
+static Node	*unary()
+{
+	if (consume("+"))
+		return primary();
+	else if (consume("-"))
+		return (new_node(ND_SUB, new_node_number(0), primary()));
+	return primary();
+}
+
 static Node	*primary()
 {
 	if (consume("("))
@@ -65,119 +180,4 @@ static Node	*primary()
 	}
 
 	return (new_node_number(expect_number()));
-}
-
-static Node	*unary()
-{
-	if (consume("+"))
-		return primary();
-	else if (consume("-"))
-		return (new_node(ND_SUB, new_node_number(0), primary()));
-	return primary();
-}
-
-static Node	*mul()
-{
-	Node	*node = unary();
-
-	while (true)
-	{
-		if (consume("*"))
-			node = new_node(ND_MUL, node, unary());
-		else if (consume("/"))
-			node = new_node(ND_DIV, node, unary());
-		else
-			return (node);
-	}
-}
-
-static Node	*add()
-{
-	Node	*node = mul();
-
-	while (true)
-	{
-		if (consume("+"))
-			node = new_node(ND_ADD, node, mul());
-		else if (consume("-"))
-			node = new_node(ND_SUB, node, mul());
-		else
-			return (node);
-	}
-}
-
-static Node	*relational()
-{
-	Node	*node = add();
-
-	while (true)
-	{
-		if (consume("<="))
-			node = new_node(ND_LTE, node, add());
-		else if (consume(">="))
-			node = new_node(ND_GTE, node, add());
-		else if (consume("<"))
-			node = new_node(ND_LT, node, add());
-		else if (consume(">"))
-			node = new_node(ND_GT, node, add());
-		else
-			return (node);
-	}
-}
-
-static Node	*equality()
-{
-	Node	*node = relational();
-
-	while (true)
-	{
-		if (consume("=="))
-			node = new_node(ND_EQ, node, relational());
-		else if (consume("!="))
-			node = new_node(ND_NEQ, node, relational());
-		else
-			return (node);
-	}
-}
-
-static Node	*assign()
-{
-	Node	*node = equality();
-
-	if (consume("="))
-		node = new_node(ND_ASSIGN, node, assign());
-	return (node);
-}
-
-static Node	*expr()
-{
-	return (assign());
-}
-
-static Node	*stmt()
-{
-	Node	*node;
-
-	if (token->kind == TK_RETURN)
-	{
-		token = token->next;
-		node = (Node *)calloc(1, sizeof(Node));
-		node->kind = ND_RETURN;
-		node->lhs = expr();
-	}
-	else
-	{
-		node = expr();
-	}
-	expect(";");
-	return (node);
-}
-
-void	program()
-{
-	int	i = 0;
-
-	while (!at_eof() && i < 100)
-		code[i++] = stmt();
-	code[i] = NULL;
 }
