@@ -54,6 +54,8 @@ typedef enum
 	ND_NEQ,		// !=
 	ND_RETURN,	// return
 	ND_IF,		// if
+	ND_WHILE,	// while
+	ND_FOR,		// for
 	ND_LVAR,	// ローカル変数
 	ND_NUM,		// 整数
 }	NodeKind;

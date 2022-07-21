@@ -28,18 +28,18 @@ LVar	*find_lvar(Token *tok)
 
 void	gen(Node *node)
 {
-	if (node->kind == ND_RETURN)
+	if (node == NULL)
+		return ;
+	switch (node->kind)
 	{
+	case ND_RETURN:
 		gen(node->lhs);
 		printf("\tpop rax\n");
 		printf("\tmov rsp, rbp\n");
 		printf("\tpop rbp\n");
 		printf("\tret\n");
 		return ;
-	}
-
-	if (node->kind == ND_IF)
-	{
+	case ND_IF:
 		gen(node->cond);
 		printf("\tpop rax\n");
 		printf("\tcmp rax, 0\n");
@@ -60,10 +60,30 @@ void	gen(Node *node)
 		printf(".Lend%ld:\n", labelseq);
 		labelseq++;
 		return ;
-	}
-
-	switch (node->kind)
-	{
+	case ND_WHILE:
+		printf(".Lbegin%ld:\n", labelseq);
+		gen(node->cond);
+		printf("\tpop rax\n");
+		printf("\tcmp rax, 0\n");
+		printf("\tje .Lend%ld\n", labelseq);
+		gen(node->then);
+		printf("\tjmp .Lbegin%ld\n", labelseq);
+		printf(".Lend%ld:\n", labelseq);
+		labelseq++;
+		return ;
+	case ND_FOR:
+		gen(node->lhs);
+		printf(".Lbegin%ld:\n", labelseq);
+		gen(node->cond);
+		printf("\tpop rax\n");
+		printf("\tcmp rax, 0\n");
+		printf("\tje .Lend%ld\n", labelseq);
+		gen(node->then);
+		gen(node->rhs);
+		printf("\tjmp .Lbegin%ld\n", labelseq);
+		printf(".Lend%ld:\n", labelseq);
+		labelseq++;
+		return ;
 	case ND_NUM:
 		printf("\tpush %ld\n", node->val);
 		return ;

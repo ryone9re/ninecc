@@ -62,6 +62,39 @@ static Node	*stmt(void)
 		return (node);
 	}
 
+	if (consume("while"))
+	{
+		expect("(");
+		node = new_node(ND_WHILE, NULL, NULL);
+		node->cond = expr();
+		expect(")");
+		node->then = stmt();
+		return (node);
+	}
+
+	if (consume("for"))
+	{
+		expect("(");
+		node = new_node(ND_FOR, NULL, NULL);
+		if (!consume(";"))
+		{
+			node->lhs = expr();
+			expect(";");
+		}
+		if (!consume(";"))
+		{
+			node->cond = expr();
+			expect(";");
+		}
+		if (!consume(")"))
+		{
+			node->rhs = expr();
+			expect(")");
+		}
+		node->then = stmt();
+		return (node);
+	}
+
 	node = expr();
 	expect(";");
 	return (node);

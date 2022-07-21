@@ -114,7 +114,7 @@ static char	*starts_with_reserved(char *p)
 {
 	size_t	l = strlen(p);
 
-	static char	*kw[] = {"return", "if", "else"};
+	static char	*kw[] = {"return", "if", "else", "while", "for"};
 
 	for (size_t i = 0; i < sizeof(kw) / sizeof(*kw); i++)
 	{
