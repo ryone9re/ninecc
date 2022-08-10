@@ -155,6 +155,13 @@ Token	*tokenize()
 			continue ;
 		}
 
+		// ブロック
+		if (*p == '{' || *p == '}')
+		{
+			cur = new_token(TK_RESERVED, cur, p++, 1);
+			continue;
+		}
+
 		// 予約語
 		char	*q = starts_with_reserved(p);
 		if (q)

@@ -1,5 +1,7 @@
 #include "9cc.h"
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 // 2項演算子のNodeを作成
 static Node	*new_node(NodeKind kind, Node *lhs, Node *rhs)
@@ -29,6 +31,7 @@ static Node	*add(void);
 static Node	*mul(void);
 static Node	*unary(void);
 static Node	*primary(void);
+static Node	*args(void);
 
 void	program(void)
 {
@@ -92,6 +95,22 @@ static Node	*stmt(void)
 			expect(")");
 		}
 		node->then = stmt();
+		return (node);
+	}
+
+	if (consume("{"))
+	{
+		Node	head = {};
+		Node	*cur = &head;
+
+		while (!consume("}"))
+		{
+			cur->next = stmt();
+			cur = cur->next;
+		}
+
+		node = new_node(ND_BLOCK, NULL, NULL);
+		node->body = head.next;
 		return (node);
 	}
 
@@ -200,8 +219,19 @@ static Node	*primary(void)
 	if (tok)
 	{
 		Node	*node = (Node *)calloc(1, sizeof(Node));
-		node->kind = ND_LVAR;
 
+		if (consume("("))
+		{
+			node->kind = ND_FUNCALL;
+			char	*s = substr(tok->str, tok->len);
+			if (!s)
+				exit_with_error();
+			node->funcname = s;
+			node->args = args();
+			return (node);
+		}
+
+		node->kind = ND_LVAR;
 		LVar	*lvar = find_lvar(tok);
 		if (lvar)
 			node->offset = lvar->offset;
@@ -222,4 +252,20 @@ static Node	*primary(void)
 	}
 
 	return (new_node_number(expect_number()));
+}
+
+static Node	*args(void)
+{
+	if (consume(")"))
+		return (NULL);
+
+	Node	*head = assign();
+	Node	*cur = head;
+	while (consume(","))
+	{
+		cur->next = assign();
+		cur = cur->next;
+	}
+	expect(")");
+	return (head);
 }

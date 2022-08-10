@@ -2,6 +2,7 @@
 # define NINECC_H
 
 // includes
+#include <errno.h>
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -13,7 +14,7 @@ typedef struct LVar		LVar;
 // トークンの種類
 typedef enum
 {
-	TK_RESERVED,	// 記号
+	TK_RESERVED,	// 予約語
 	TK_IDENT,		// 識別子
 	TK_NUM,			// 整数トークン
 	TK_EOF,			// 入力の終わりを示すトークン
@@ -32,8 +33,8 @@ struct Token
 // ローカル変数の型
 struct LVar
 {
-	LVar	*next;	// 次の変数かNULL
-	char	*name;	// 変数の名前
+	LVar		*next;	// 次の変数かNULL
+	char		*name;	// 変数の名前
 	size_t		len;	// 名前の長さ
 	size_t		offset;	// RBPからのオフセット
 };
@@ -56,6 +57,9 @@ typedef enum
 	ND_IF,		// if
 	ND_WHILE,	// while
 	ND_FOR,		// for
+	ND_BLOCK,	// {...}
+	ND_FUNCDEC,	// 関数宣言
+	ND_FUNCALL,	// 関数呼び出し
 	ND_LVAR,	// ローカル変数
 	ND_NUM,		// 整数
 }	NodeKind;
@@ -72,6 +76,14 @@ struct Node
 	Node		*cond;
 	Node		*then;
 	Node		*els;
+
+	// Block
+	Node		*body;
+
+	// 関数宣言呼び出し
+	char		*funcname;	// 関数名
+	Node		*args;		// 実引数
+	Node		*params;	// 仮引数
 
 	size_t		val;	// kindがND_NUMの場合のみ使う
 	size_t		offset;	// kindがoffsetの場合のみ使う
@@ -107,5 +119,9 @@ void	program(void);
 /* codegen.c */
 LVar	*find_lvar(Token *tok);
 void	gen(Node *node);
+
+/* utils.c */
+char	*substr(char *str, size_t len);
+void	exit_with_error();
 
 #endif /* NINECC_H */

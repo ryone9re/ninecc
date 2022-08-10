@@ -1,5 +1,5 @@
 ```
-program		=	stmt*
+program		=	function*
 stmt		=	expr ";"
 				| "{" stmt* "}"
 				| "if" "(" expr ")" stmt ("else" stmt)?
@@ -13,5 +13,8 @@ relational	=	add ("<" add | "<=" add | ">" add | ">=" add)*
 add			=	mul ("+" mul | "-" mul)*
 mul			=	unary ("*" unary | "/" unary)*
 unary		=	("+" | "-")? primary | unary
-primary		=	num | ident | "(" expr ")"
+primary		=	num
+				| ident args?
+				| "(" expr ")"
+args		=	"(" (assign ("," assign)*)? ")"
 ```

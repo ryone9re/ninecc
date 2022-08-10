@@ -5,6 +5,7 @@
 Node			*code[100];
 LVar			*locals;
 static size_t	labelseq = 1;
+static char		*argreg[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
 
 static void	gen_lval(Node *node)
 {
@@ -84,9 +85,39 @@ void	gen(Node *node)
 		printf(".Lend%ld:\n", labelseq);
 		labelseq++;
 		return ;
+	case ND_BLOCK:
+		for (Node *n = node->body; n; n = n->next)
+			gen(n);
+		return ;
 	case ND_NUM:
 		printf("\tpush %ld\n", node->val);
 		return ;
+	case ND_FUNCALL:
+	{
+		Node	*n = node->args;
+
+		for (size_t i = 0; n && i < (sizeof(argreg) / sizeof(*argreg)); i++)
+		{
+			gen(n);
+			printf("\tpop %s\n", argreg[i]);
+			n = n->next;
+		}
+		printf("\tmov rax, rsp\n");
+		printf("\tand rax, 15\n");
+		printf("\tjnz .L.call.%ld\n", labelseq);
+		printf("\tmov rax, 0\n");
+		printf("\tcall %s\n", node->funcname);
+		printf("\tjmp .L.end.%ld\n", labelseq);
+		printf(".L.call.%ld:\n", labelseq);
+		printf("\tsub rsp, 8\n");
+		printf("\tmov rax, 0\n");
+		printf("\tcall %s\n", node->funcname);
+		printf("\tadd rsp, 8\n");
+		printf(".L.end.%ld:\n", labelseq);
+		printf("\tpush rax\n");
+		labelseq++;
+		return ;
+	}
 	case ND_LVAR:
 		gen_lval(node);
 		printf("\tpop rax\n");
