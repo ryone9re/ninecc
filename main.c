@@ -17,10 +17,16 @@ int	main(int argc, char **argv)
 	token = tokenize();
 	Function	*prog = program();
 
-	size_t	stack_size = 0;
-	for (Var *var = prog->locals; var; var = var->next)
-		stack_size = stack_size + 8;
-	prog->stack_size = stack_size;
+	for (Function *f = prog; f; f = f->next)
+	{
+		size_t	offset = 0;
+		for (Var *var = f->locals; var; var = var->next)
+		{
+			offset = offset + 8;
+			var->offset = offset;
+		}
+		f->stack_size = offset;
+	}
 
 	codegen(prog);
 

@@ -30,7 +30,7 @@ struct Token
 typedef struct Var		Var;
 struct Var
 {
-	Var		*next;	// 次の変数かNULL
+	Var			*next;	// 次の変数かNULL
 	char		*name;	// 変数の名前
 	size_t		len;	// 名前の長さ
 	size_t		offset;	// RBPからのオフセット
@@ -92,9 +92,11 @@ struct Node
 typedef struct Function	Function;
 struct Function
 {
-	Node	*node;
-	Var		*locals;
-	size_t	stack_size;
+	Function	*next;
+	char		*name;
+	Node		*node;
+	Var			*locals;
+	size_t		stack_size;
 };
 
 /* グローバル変数宣言 */
@@ -113,7 +115,6 @@ void	codegen(Function *prog);
 Function	*program(void);
 
 /* tokenize.c */
-void	error(char *fmt, ...);
 void	error_at(char *loc, char *fmt, ...);
 bool	consume(char *op);
 Token	*consume_ident(void);
@@ -124,7 +125,8 @@ int		is_tokstr(char c);
 Token	*tokenize(void);
 
 /* utils.c */
-char	*substr(char *str, size_t len);
+void	error(char *fmt, ...);
 void	exit_with_error(void);
+char	*substr(char *str, size_t len);
 
 #endif /* NINECC_H */

@@ -5,16 +5,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-// printfと同じ引数を取る
-void	error(char *fmt, ...)
-{
-	va_list	ap;
-	va_start(ap, fmt);
-	vfprintf(stderr, fmt, ap);
-	fprintf(stderr, "\n");
-	exit(1);
-}
-
 // エラー箇所を報告する
 void	error_at(char *loc, char *fmt, ...)
 {

@@ -35,36 +35,90 @@ static Node	*new_node_number(int val)
 	return (node);
 }
 
-static Node	*stmt(void);
-static Node	*expr(void);
-static Node	*assign(void);
-static Node	*equality(void);
-static Node	*relational(void);
-static Node	*add(void);
-static Node	*mul(void);
-static Node	*unary(void);
-static Node	*primary(void);
-static Node	*args(void);
+static Function	*function(void);
+static Var		*params(void);
+static Node		*stmt(void);
+static Node		*expr(void);
+static Node		*assign(void);
+static Node		*equality(void);
+static Node		*relational(void);
+static Node		*add(void);
+static Node		*mul(void);
+static Node		*unary(void);
+static Node		*primary(void);
+static Node		*args(void);
 
 Function	*program(void)
 {
+	Function	prog = {};
+	Function	*cur = &prog;
+
+	while (!at_eof())
+	{
+		cur->next = function();
+		cur = cur->next;
+	}
+	return (prog.next);
+}
+
+Function	*function(void)
+{
 	locals = NULL;
+
+	// 関数名宣言
+	Token	*funcdec = consume_ident();
+	if (!funcdec)
+		error("関数宣言が不正です");
+
+	// 仮引数宣言
+	expect("(");
+	if (!consume(")"))
+	{
+		locals = params();
+		while (consume(","))
+			locals = params();
+		expect(")");
+	}
+
+	expect("{");
 
 	Node	head = {};
 	Node	*cur = &head;
 
-	while (!at_eof())
+	while (!consume("}"))
 	{
 		cur->next = stmt();
 		cur = cur->next;
 	}
 
-	Function	*prog = (Function *)calloc(1, sizeof(Function));
-	if (!prog)
+	Function	*func = (Function *)calloc(1, sizeof(Function));
+	if (!func)
 		exit_with_error();
-	prog->node = head.next;
-	prog->locals = locals;
-	return (prog);
+	func->name = substr(funcdec->str, funcdec->len);
+	func->node = head.next;
+	func->locals = locals;
+	return (func);
+}
+
+static Var	*params(void)
+{
+	Token	*paramdec = consume_ident();
+	if (!paramdec)
+		error("仮引数宣言が不正です");
+
+	Var	*params = (Var *)calloc(1, sizeof(Var));
+	if (!params)
+		exit_with_error();
+
+	params->next = locals;
+	params->name = substr(paramdec->str, paramdec->len);
+	params->len = paramdec->len;
+	if (locals)
+		params->offset = locals->offset + 8;
+	else
+		params->offset = 8;
+
+	return (params);
 }
 
 static Node	*stmt(void)
@@ -263,6 +317,8 @@ static Node	*primary(void)
 		else
 		{
 			lvar = (Var *)calloc(1, sizeof(Var));
+			if (!lvar)
+				exit_with_error();
 			lvar->next = locals;
 			lvar->name = tok->str;
 			lvar->len = tok->len;

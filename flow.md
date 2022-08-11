@@ -1,6 +1,7 @@
 ```
-program		=	function
-function	=	stmt*
+program		=	function*
+function	=	ident "(" params? ")" "{" stmt* "}"
+params		=	(ident ("," ident)*)?
 stmt		=	"return" expr ";"
 				| "if" "(" expr ")" stmt ("else" stmt)?
 				| "while" "(" expr ")" stmt

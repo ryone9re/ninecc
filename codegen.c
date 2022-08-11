@@ -2,8 +2,10 @@
 #include <stdio.h>
 #include <string.h>
 
-static size_t	labelseq = 1;
 static char		*argreg[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
+
+static size_t	labelseq = 1;
+static char		*funcname;
 
 static void	gen_lval(Node *node)
 {
@@ -24,9 +26,7 @@ void	gen(Node *node)
 	case ND_RETURN:
 		gen(node->lhs);
 		printf("\tpop rax\n");
-		printf("\tmov rsp, rbp\n");
-		printf("\tpop rbp\n");
-		printf("\tret\n");
+		printf("\tjmp .L.return.%s\n", funcname);
 		return ;
 	case ND_IF:
 		gen(node->cond);
@@ -63,10 +63,13 @@ void	gen(Node *node)
 	case ND_FOR:
 		gen(node->init);
 		printf(".Lbegin%ld:\n", labelseq);
-		gen(node->cond);
-		printf("\tpop rax\n");
-		printf("\tcmp rax, 0\n");
-		printf("\tje .Lend%ld\n", labelseq);
+		if (node->cond)
+		{
+			gen(node->cond);
+			printf("\tpop rax\n");
+			printf("\tcmp rax, 0\n");
+			printf("\tje .Lend%ld\n", labelseq);
+		}
 		gen(node->then);
 		gen(node->inc);
 		printf("\tjmp .Lbegin%ld\n", labelseq);
@@ -82,14 +85,18 @@ void	gen(Node *node)
 		return ;
 	case ND_FUNCALL:
 	{
-		Node	*n = node->args;
+		size_t	nargs = 0;
 
-		for (size_t i = 0; n && i < (sizeof(argreg) / sizeof(*argreg)); i++)
+		for (Node *n = node->args; n; n = n->next)
 		{
 			gen(n);
-			printf("\tpop %s\n", argreg[i]);
-			n = n->next;
+			nargs++;
 		}
+
+		for (size_t i = nargs; i; i--)
+			printf("\tpop %s\n", argreg[i - 1]);
+
+		// RSPのアライン
 		printf("\tmov rax, rsp\n");
 		printf("\tand rax, 15\n");
 		printf("\tjnz .L.call.%ld\n", labelseq);
@@ -176,29 +183,35 @@ void	gen(Node *node)
 
 void	codegen(Function *prog)
 {
-	// アセンブリの前半部分を出力
+	// シンタックス宣言
 	printf(".intel_syntax noprefix\n");
-	printf(".global main\n\n");
-	printf("main:\n");
-
-	// プロローグ
-	printf("\tpush rbp\n");
-	printf("\tmov rbp, rsp\n");
-	printf("\tsub rsp, %ld\n", prog->stack_size);
 
 	// 先頭から順にコード生成
-	for (Node *node = prog->node; node; node = node->next)
+	for (Function *func = prog; func; func = func->next)
 	{
-		gen(node);
+		// 関数宣言
+		printf("%s:\n", func->name);
+		funcname = func->name;
+		printf(".global %s\n", funcname);
 
-		// 式の評価結果としてスタックに一つの値が残っている
-		// はずなので､スタックが溢れないようにポップしておく
-		printf("\tpop rax\n");
+		// プロローグ
+		printf("\tpush rbp\n");
+		printf("\tmov rbp, rsp\n");
+		printf("\tsub rsp, %ld\n", func->stack_size);
+
+		// 受けた引数をスタックに積む
+		size_t	i = 0;
+		for (Var *v = func->locals; v; v = v->next)
+			printf("\tmov [rbp-%ld], %s\n", v->offset, argreg[i++]);
+
+		// 関数の実装
+		for (Node *node = func->node; node; node = node->next)
+			gen(node);
+
+		// エピローグ
+		printf(".L.return.%s:\n", funcname);
+		printf("\tmov rsp, rbp\n");
+		printf("\tpop rbp\n");
+		printf("\tret\n");
 	}
-
-	// エピローグ
-	printf(".L.return:\n");
-	printf("\tmov rsp, rbp\n");
-	printf("\tpop rbp\n");
-	printf("\tret\n");
 }
