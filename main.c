@@ -15,37 +15,14 @@ int	main(int argc, char **argv)
 	// トークナイズしてパースする
 	user_input = argv[1];
 	token = tokenize();
-	program();
-
-	// アセンブリの前半部分を出力
-	printf(".intel_syntax noprefix\n");
-	printf(".global main\n\n");
-	printf("main:\n");
+	Function	*prog = program();
 
 	size_t	stack_size = 0;
-	for (LVar *var = locals; var; var = var->next)
+	for (Var *var = prog->locals; var; var = var->next)
 		stack_size = stack_size + 8;
+	prog->stack_size = stack_size;
 
-	// プロローグ
-	printf("\tpush rbp\n");
-	printf("\tmov rbp, rsp\n");
-	printf("\tsub rsp, %ld\n", stack_size);
-
-	// 先頭の式から順にコード生成
-	for (size_t i = 0; code[i]; i++)
-	{
-		gen(code[i]);
-
-		// 式の評価結果としてスタックに一つの値が残っている
-		// はずなので､スタックが溢れないようにポップしておく
-		printf("\tpop rax\n");
-	}
-
-	// エピローグ
-	printf(".L.return:\n");
-	printf("\tmov rsp, rbp\n");
-	printf("\tpop rbp\n");
-	printf("\tret\n");
+	codegen(prog);
 
 	return (0);
 }

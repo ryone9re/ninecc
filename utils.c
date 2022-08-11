@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-void	exit_with_error()
+void	exit_with_error(void)
 {
 	fprintf(stderr, "%s\n",strerror(errno));
 	exit(errno);

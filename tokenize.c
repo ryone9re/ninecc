@@ -44,7 +44,7 @@ bool	consume(char *op)
 
 // 次のトークンがidentifierのときには､トークンを1つ読み進めて
 // そのトークンを返す｡それ以外の場合にはNULLを返す｡
-Token	*consume_ident()
+Token	*consume_ident(void)
 {
 	if (token->kind == TK_IDENT)
 	{
@@ -68,7 +68,7 @@ void	expect(char *op)
 
 // 次のトークンが数値の場合､トークンを1つ読み進めてその数値を返す｡
 // それ以外の場合にはエラーを報告する｡
-int	expect_number()
+int	expect_number(void)
 {
 	if (token->kind != TK_NUM)
 	{
@@ -81,7 +81,7 @@ int	expect_number()
 }
 
 // 終端チェック
-bool	at_eof()
+bool	at_eof(void)
 {
 	return (token->kind == TK_EOF);
 }
@@ -140,7 +140,7 @@ static char	*starts_with_reserved(char *p)
 }
 
 // 入力文字列pをトークナイズしてそれを返す
-Token	*tokenize()
+Token	*tokenize(void)
 {
 	char	*p = user_input;
 	Token	head = {};

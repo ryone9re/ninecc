@@ -1,15 +1,10 @@
 #ifndef NINECC_H
 # define NINECC_H
 
-// includes
+/* includes */
 #include <errno.h>
 #include <stdbool.h>
 #include <stddef.h>
-
-/* 構造体宣言 */
-typedef struct Token	Token;
-typedef struct Node		Node;
-typedef struct LVar		LVar;
 
 // トークンの種類
 typedef enum
@@ -21,6 +16,7 @@ typedef enum
 }	TokenKind;
 
 // トークン型
+typedef struct Token	Token;
 struct Token
 {
 	TokenKind	kind;	// トークンの型
@@ -31,9 +27,10 @@ struct Token
 };
 
 // ローカル変数の型
-struct LVar
+typedef struct Var		Var;
+struct Var
 {
-	LVar		*next;	// 次の変数かNULL
+	Var		*next;	// 次の変数かNULL
 	char		*name;	// 変数の名前
 	size_t		len;	// 名前の長さ
 	size_t		offset;	// RBPからのオフセット
@@ -60,11 +57,12 @@ typedef enum
 	ND_BLOCK,	// {...}
 	ND_FUNCDEC,	// 関数宣言
 	ND_FUNCALL,	// 関数呼び出し
-	ND_LVAR,	// ローカル変数
+	ND_VAR,	// ローカル変数
 	ND_NUM,		// 整数
 }	NodeKind;
 
 // 抽象構文木のノードの型
+typedef struct Node		Node;
 struct Node
 {
 	Node		*next;	// 次のNode
@@ -72,10 +70,12 @@ struct Node
 	Node		*lhs;	// 左辺
 	Node		*rhs;	// 右辺
 
-	// if
+	// if, while, for
 	Node		*cond;
 	Node		*then;
 	Node		*els;
+	Node		*init;
+	Node		*inc;
 
 	// Block
 	Node		*body;
@@ -89,39 +89,42 @@ struct Node
 	size_t		offset;	// kindがoffsetの場合のみ使う
 };
 
-/* グローバル変数宣言 */
+typedef struct Function	Function;
+struct Function
+{
+	Node	*node;
+	Var		*locals;
+	size_t	stack_size;
+};
 
+/* グローバル変数宣言 */
 // 現在着目しているトークン
 extern Token	*token;
 // 入力プログラム
 extern char	*user_input;
-// 文を格納する配列
-extern Node	*code[100];
-// ローカル変数
-extern LVar	*locals;
 
 /* プロトタイプ宣言 */
+
+/* codegen.c */
+Var		*find_lvar(Token *tok);
+void	codegen(Function *prog);
+
+/* parse.c */
+Function	*program(void);
 
 /* tokenize.c */
 void	error(char *fmt, ...);
 void	error_at(char *loc, char *fmt, ...);
 bool	consume(char *op);
-Token	*consume_ident();
+Token	*consume_ident(void);
 void	expect(char *op);
-int		expect_number();
-bool	at_eof();
+int		expect_number(void);
+bool	at_eof(void);
 int		is_tokstr(char c);
 Token	*tokenize(void);
 
-/* parse.c */
-void	program(void);
-
-/* codegen.c */
-LVar	*find_lvar(Token *tok);
-void	gen(Node *node);
-
 /* utils.c */
 char	*substr(char *str, size_t len);
-void	exit_with_error();
+void	exit_with_error(void);
 
 #endif /* NINECC_H */

@@ -2,29 +2,17 @@
 #include <stdio.h>
 #include <string.h>
 
-Node			*code[100];
-LVar			*locals;
 static size_t	labelseq = 1;
 static char		*argreg[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
 
 static void	gen_lval(Node *node)
 {
-	if (node->kind != ND_LVAR)
+	if (node->kind != ND_VAR)
 		error("代入の左辺が変数ではありません");
 
 	printf("\tmov rax, rbp\n");
 	printf("\tsub rax, %ld\n", node->offset);
 	printf("\tpush rax\n");
-}
-
-LVar	*find_lvar(Token *tok)
-{
-	for (LVar *var = locals; var; var = var->next)
-	{
-		if (var->len == tok->len && !memcmp(var->name, tok->str, var->len))
-			return (var);
-	}
-	return (NULL);
 }
 
 void	gen(Node *node)
@@ -73,14 +61,14 @@ void	gen(Node *node)
 		labelseq++;
 		return ;
 	case ND_FOR:
-		gen(node->lhs);
+		gen(node->init);
 		printf(".Lbegin%ld:\n", labelseq);
 		gen(node->cond);
 		printf("\tpop rax\n");
 		printf("\tcmp rax, 0\n");
 		printf("\tje .Lend%ld\n", labelseq);
 		gen(node->then);
-		gen(node->rhs);
+		gen(node->inc);
 		printf("\tjmp .Lbegin%ld\n", labelseq);
 		printf(".Lend%ld:\n", labelseq);
 		labelseq++;
@@ -118,7 +106,7 @@ void	gen(Node *node)
 		labelseq++;
 		return ;
 	}
-	case ND_LVAR:
+	case ND_VAR:
 		gen_lval(node);
 		printf("\tpop rax\n");
 		printf("\tmov rax, [rax]\n");
@@ -184,4 +172,33 @@ void	gen(Node *node)
 	}
 
 	printf("\tpush rax\n");
+}
+
+void	codegen(Function *prog)
+{
+	// アセンブリの前半部分を出力
+	printf(".intel_syntax noprefix\n");
+	printf(".global main\n\n");
+	printf("main:\n");
+
+	// プロローグ
+	printf("\tpush rbp\n");
+	printf("\tmov rbp, rsp\n");
+	printf("\tsub rsp, %ld\n", prog->stack_size);
+
+	// 先頭から順にコード生成
+	for (Node *node = prog->node; node; node = node->next)
+	{
+		gen(node);
+
+		// 式の評価結果としてスタックに一つの値が残っている
+		// はずなので､スタックが溢れないようにポップしておく
+		printf("\tpop rax\n");
+	}
+
+	// エピローグ
+	printf(".L.return:\n");
+	printf("\tmov rsp, rbp\n");
+	printf("\tpop rbp\n");
+	printf("\tret\n");
 }

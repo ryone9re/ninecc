@@ -3,6 +3,19 @@
 #include <stdlib.h>
 #include <string.h>
 
+Var	*locals;
+
+// ローカル変数を名前で探す
+Var	*find_lvar(Token *tok)
+{
+	for (Var *var = locals; var; var = var->next)
+	{
+		if (var->len == tok->len && !memcmp(var->name, tok->str, var->len))
+			return (var);
+	}
+	return (NULL);
+}
+
 // 2項演算子のNodeを作成
 static Node	*new_node(NodeKind kind, Node *lhs, Node *rhs)
 {
@@ -33,13 +46,25 @@ static Node	*unary(void);
 static Node	*primary(void);
 static Node	*args(void);
 
-void	program(void)
+Function	*program(void)
 {
-	int	i = 0;
+	locals = NULL;
 
-	while (!at_eof() && i < 100)
-		code[i++] = stmt();
-	code[i] = NULL;
+	Node	head = {};
+	Node	*cur = &head;
+
+	while (!at_eof())
+	{
+		cur->next = stmt();
+		cur = cur->next;
+	}
+
+	Function	*prog = (Function *)calloc(1, sizeof(Function));
+	if (!prog)
+		exit_with_error();
+	prog->node = head.next;
+	prog->locals = locals;
+	return (prog);
 }
 
 static Node	*stmt(void)
@@ -81,7 +106,7 @@ static Node	*stmt(void)
 		node = new_node(ND_FOR, NULL, NULL);
 		if (!consume(";"))
 		{
-			node->lhs = expr();
+			node->init = expr();
 			expect(";");
 		}
 		if (!consume(";"))
@@ -91,7 +116,7 @@ static Node	*stmt(void)
 		}
 		if (!consume(")"))
 		{
-			node->rhs = expr();
+			node->inc = expr();
 			expect(")");
 		}
 		node->then = stmt();
@@ -231,13 +256,13 @@ static Node	*primary(void)
 			return (node);
 		}
 
-		node->kind = ND_LVAR;
-		LVar	*lvar = find_lvar(tok);
+		node->kind = ND_VAR;
+		Var	*lvar = find_lvar(tok);
 		if (lvar)
 			node->offset = lvar->offset;
 		else
 		{
-			lvar = (LVar *)calloc(1, sizeof(LVar));
+			lvar = (Var *)calloc(1, sizeof(Var));
 			lvar->next = locals;
 			lvar->name = tok->str;
 			lvar->len = tok->len;

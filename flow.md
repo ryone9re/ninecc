@@ -1,20 +1,21 @@
 ```
-program		=	function*
-stmt		=	expr ";"
-				| "{" stmt* "}"
+program		=	function
+function	=	stmt*
+stmt		=	"return" expr ";"
 				| "if" "(" expr ")" stmt ("else" stmt)?
 				| "while" "(" expr ")" stmt
 				| "for" "(" expr? ";" expr? ";" expr? ")" stmt
-				| "return" expr ";"
+				| "{" stmt* "}"
+				| expr ";"
 expr		=	assign
 assign		=	equality ("=" assign)?
 equality	=	relational ("==" relational | "!=" relational)*
 relational	=	add ("<" add | "<=" add | ">" add | ">=" add)*
 add			=	mul ("+" mul | "-" mul)*
 mul			=	unary ("*" unary | "/" unary)*
-unary		=	("+" | "-")? primary | unary
-primary		=	num
+unary		=	("+" | "-")? unary | primary
+primary		=	"(" expr ")"
 				| ident args?
-				| "(" expr ")"
+				| num
 args		=	"(" (assign ("," assign)*)? ")"
 ```
