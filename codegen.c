@@ -7,17 +7,40 @@ static char		*argreg[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
 static size_t	labelseq = 1;
 static char		*funcname;
 
+static void	gen(Node *node);
+
 static void	gen_lval(Node *node)
 {
-	if (node->kind != ND_VAR)
+	switch (node->kind)
+	{
+	case ND_VAR:
+		printf("\tlea rax, [rbp-%ld]\n", node->var->offset);
+		printf("\tpush rax\n");
+		return ;
+	case ND_DEREF:
+		gen(node->lhs);
+		return ;
+	default:
 		error("代入の左辺が変数ではありません");
+	}
+}
 
-	printf("\tmov rax, rbp\n");
-	printf("\tsub rax, %ld\n", node->offset);
+static void	load(void)
+{
+	printf("\tpop rax\n");
+	printf("\tmov rax, [rax]\n");
 	printf("\tpush rax\n");
 }
 
-void	gen(Node *node)
+static void	store(void)
+{
+	printf("\tpop rdi\n");
+	printf("\tpop rax\n");
+	printf("\tmov [rax], rdi\n");
+	printf("\tpush rdi\n");
+}
+
+static void	gen(Node *node)
 {
 	if (node == NULL)
 		return ;
@@ -80,8 +103,21 @@ void	gen(Node *node)
 		for (Node *n = node->body; n; n = n->next)
 			gen(n);
 		return ;
-	case ND_NUM:
-		printf("\tpush %ld\n", node->val);
+	case ND_ASSIGN:
+		gen_lval(node->lhs);
+		gen(node->rhs);
+		store();
+		return ;
+	case ND_ADDR:
+		gen_lval(node->lhs);
+		return ;
+	case ND_DEREF:
+		gen(node->lhs);
+		load();
+		return ;
+	case ND_VAR:
+		gen_lval(node);
+		load();
 		return ;
 	case ND_FUNCALL:
 	{
@@ -113,20 +149,8 @@ void	gen(Node *node)
 		labelseq++;
 		return ;
 	}
-	case ND_VAR:
-		gen_lval(node);
-		printf("\tpop rax\n");
-		printf("\tmov rax, [rax]\n");
-		printf("\tpush rax\n");
-		return ;
-	case ND_ASSIGN:
-		gen_lval(node->lhs);
-		gen(node->rhs);
-
-		printf("\tpop rdi\n");
-		printf("\tpop rax\n");
-		printf("\tmov [rax], rdi\n");
-		printf("\tpush rdi\n");
+	case ND_NUM:
+		printf("\tpush %d\n", node->val);
 		return ;
 	default:
 		break ;
@@ -190,9 +214,9 @@ void	codegen(Function *prog)
 	for (Function *func = prog; func; func = func->next)
 	{
 		// 関数宣言
-		printf("%s:\n", func->name);
 		funcname = func->name;
 		printf(".global %s\n", funcname);
+		printf("%s:\n", funcname);
 
 		// プロローグ
 		printf("\tpush rbp\n");
@@ -201,8 +225,8 @@ void	codegen(Function *prog)
 
 		// 受けた引数をスタックに積む
 		size_t	i = 0;
-		for (Var *v = func->locals; v; v = v->next)
-			printf("\tmov [rbp-%ld], %s\n", v->offset, argreg[i++]);
+		for (VarList *vl = func->params; vl; vl = vl->next)
+			printf("\tmov [rbp-%ld], %s\n", vl->var->offset, argreg[i++]);
 
 		// 関数の実装
 		for (Node *node = func->node; node; node = node->next)

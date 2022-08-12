@@ -25,7 +25,7 @@ char	*substr(char *str, size_t len)
 	char	*s = (char *)calloc(len + 1, sizeof(char));
 
 	if (!s)
-		return (NULL);
+		exit_with_error();
 	strncpy(s, str, len);
 	return (s);
 }

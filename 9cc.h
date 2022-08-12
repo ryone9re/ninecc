@@ -26,14 +26,20 @@ struct Token
 	size_t		len;	//トークンの長さ
 };
 
-// ローカル変数の型
+// 変数の型
 typedef struct Var		Var;
 struct Var
 {
-	Var			*next;	// 次の変数かNULL
 	char		*name;	// 変数の名前
-	size_t		len;	// 名前の長さ
 	size_t		offset;	// RBPからのオフセット
+};
+
+// 変数のリスト
+typedef struct VarList	VarList;
+struct VarList
+{
+	VarList	*next;	// 次の変数
+	Var		*var;	// 変数
 };
 
 // 抽象構文木のノードの種類
@@ -50,6 +56,8 @@ typedef enum
 	ND_GTE,		// >=
 	ND_EQ,		// ==
 	ND_NEQ,		// !=
+	ND_ADDR,	// アドレス演算子(&)
+	ND_DEREF,	// 間接演算子(*)
 	ND_RETURN,	// return
 	ND_IF,		// if
 	ND_WHILE,	// while
@@ -57,7 +65,7 @@ typedef enum
 	ND_BLOCK,	// {...}
 	ND_FUNCDEC,	// 関数宣言
 	ND_FUNCALL,	// 関数呼び出し
-	ND_VAR,	// ローカル変数
+	ND_VAR,		// 変数
 	ND_NUM,		// 整数
 }	NodeKind;
 
@@ -65,8 +73,10 @@ typedef enum
 typedef struct Node		Node;
 struct Node
 {
-	Node		*next;	// 次のNode
 	NodeKind	kind;	// ノードの型
+	Token		*tok;	// ノードに対応するトークン
+	Node		*next;	// 次のNode
+
 	Node		*lhs;	// 左辺
 	Node		*rhs;	// 右辺
 
@@ -83,10 +93,9 @@ struct Node
 	// 関数宣言呼び出し
 	char		*funcname;	// 関数名
 	Node		*args;		// 実引数
-	Node		*params;	// 仮引数
 
-	size_t		val;	// kindがND_NUMの場合のみ使う
-	size_t		offset;	// kindがoffsetの場合のみ使う
+	Var			*var;		// kindがBD_VARの場合のみ使う
+	int			val;		// kindがND_NUMの場合のみ使う
 };
 
 typedef struct Function	Function;
@@ -95,7 +104,8 @@ struct Function
 	Function	*next;
 	char		*name;
 	Node		*node;
-	Var			*locals;
+	VarList		*params;
+	VarList		*locals;
 	size_t		stack_size;
 };
 
@@ -116,10 +126,11 @@ Function	*program(void);
 
 /* tokenize.c */
 void	error_at(char *loc, char *fmt, ...);
-bool	consume(char *op);
+Token	*consume(char *op);
 Token	*consume_ident(void);
 void	expect(char *op);
 int		expect_number(void);
+char	*expect_ident(void);
 bool	at_eof(void);
 int		is_tokstr(char c);
 Token	*tokenize(void);

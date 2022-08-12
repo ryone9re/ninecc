@@ -20,10 +20,10 @@ int	main(int argc, char **argv)
 	for (Function *f = prog; f; f = f->next)
 	{
 		size_t	offset = 0;
-		for (Var *var = f->locals; var; var = var->next)
+		for (VarList *vl = f->locals; vl; vl = vl->next)
 		{
 			offset = offset + 8;
-			var->offset = offset;
+			vl->var->offset = offset;
 		}
 		f->stack_size = offset;
 	}

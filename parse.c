@@ -3,40 +3,90 @@
 #include <stdlib.h>
 #include <string.h>
 
-Var	*locals;
+VarList	*locals;
 
 // ローカル変数を名前で探す
 Var	*find_lvar(Token *tok)
 {
-	for (Var *var = locals; var; var = var->next)
+	for (VarList *vl = locals; vl; vl = vl->next)
 	{
-		if (var->len == tok->len && !memcmp(var->name, tok->str, var->len))
-			return (var);
+		if (strlen(vl->var->name) == tok->len && !strncmp(vl->var->name, tok->str, tok->len))
+			return (vl->var);
 	}
 	return (NULL);
 }
 
-// 2項演算子のNodeを作成
-static Node	*new_node(NodeKind kind, Node *lhs, Node *rhs)
+// 空Nodeを作成
+static Node	*new_node(NodeKind kind, Token *tok)
 {
 	Node	*node = (Node *)calloc(1, sizeof(Node));
+	if (!node)
+		exit_with_error();
 	node->kind = kind;
+	node->tok = tok;
+	return (node);
+}
+
+// 二項演算子Nodeを作成
+static Node	*new_binary_node(NodeKind kind, Node *lhs, Node *rhs, Token *tok)
+{
+	Node	*node = new_node(kind, tok);
+	if (!node)
+		exit_with_error();
 	node->lhs = lhs;
 	node->rhs = rhs;
 	return (node);
 }
 
-// 単項演算子(整数値)のNodeを作成
-static Node	*new_node_number(int val)
+// 単項演算子Nodeを作成
+static Node	*new_unary_node(NodeKind kind, Node *expr, Token *tok)
 {
-	Node	*node = (Node *)calloc(1, sizeof(Node));
-	node->kind = ND_NUM;
+	Node	*node = new_node(kind, tok);
+	if (!node)
+		exit_with_error();
+	node->lhs = expr;
+	return (node);
+}
+
+// 整数値Nodeを作成
+static Node	*new_number_node(int val, Token *tok)
+{
+	Node	*node = new_node(ND_NUM, tok);
+	if (!node)
+		exit_with_error();
 	node->val = val;
 	return (node);
 }
 
+// 変数Nodeを作成
+static Node	*new_var_node(Var *var, Token *tok)
+{
+	Node	*node = new_node(ND_VAR, tok);
+	if (!node)
+		exit_with_error();
+	node->var = var;
+	return (node);
+}
+
+// 新規変数を作成
+static Var	*new_lvar(char *name)
+{
+	Var	*var = (Var *)calloc(1, sizeof(Var));
+	if (!var)
+		exit_with_error();
+	var->name = name;
+
+	VarList	*vl = (VarList *)calloc(1, sizeof(VarList));
+	if (!vl)
+		exit_with_error();
+	vl->var = var;
+	vl->next = locals;
+	locals = vl;
+	return (var);
+}
+
 static Function	*function(void);
-static Var		*params(void);
+static VarList	*params(void);
 static Node		*stmt(void);
 static Node		*expr(void);
 static Node		*assign(void);
@@ -70,15 +120,14 @@ Function	*function(void)
 	if (!funcdec)
 		error("関数宣言が不正です");
 
+	// 関数生成
+	Function	*func = (Function *)calloc(1, sizeof(Function));
+	if (!func)
+		exit_with_error();
+	func->name = substr(funcdec->str, funcdec->len);
+
 	// 仮引数宣言
-	expect("(");
-	if (!consume(")"))
-	{
-		locals = params();
-		while (consume(","))
-			locals = params();
-		expect(")");
-	}
+	func->params = params();
 
 	expect("{");
 
@@ -91,51 +140,51 @@ Function	*function(void)
 		cur = cur->next;
 	}
 
-	Function	*func = (Function *)calloc(1, sizeof(Function));
-	if (!func)
-		exit_with_error();
-	func->name = substr(funcdec->str, funcdec->len);
 	func->node = head.next;
 	func->locals = locals;
 	return (func);
 }
 
-static Var	*params(void)
+static VarList	*params(void)
 {
-	Token	*paramdec = consume_ident();
-	if (!paramdec)
-		error("仮引数宣言が不正です");
+	expect("(");
 
-	Var	*params = (Var *)calloc(1, sizeof(Var));
-	if (!params)
+	if (consume(")"))
+		return (NULL);
+
+	VarList	*head = (VarList *)calloc(1, sizeof(VarList));
+	if (!head)
 		exit_with_error();
+	VarList	*cur = head;
+	cur->var = new_lvar(expect_ident());
 
-	params->next = locals;
-	params->name = substr(paramdec->str, paramdec->len);
-	params->len = paramdec->len;
-	if (locals)
-		params->offset = locals->offset + 8;
-	else
-		params->offset = 8;
+	while (!consume(")"))
+	{
+		expect(",");
+		cur->next = (VarList *)calloc(1, sizeof(VarList));
+		cur->next->var = new_lvar(expect_ident());
+		cur = cur->next;
+	}
 
-	return (params);
+	return (head);
 }
 
 static Node	*stmt(void)
 {
 	Node	*node;
+	Token	*tok;
 
-	if (consume("return"))
+	if ((tok = consume("return")))
 	{
-		node = new_node(ND_RETURN, expr(), NULL);
+		node = new_unary_node(ND_RETURN, expr(), tok);
 		expect(";");
 		return (node);
 	}
 
-	if (consume("if"))
+	if ((tok = consume("if")))
 	{
 		expect("(");
-		node = new_node(ND_IF, NULL, NULL);
+		node = new_node(ND_IF, tok);
 		node->cond = expr();
 		expect(")");
 		node->then = stmt();
@@ -144,20 +193,20 @@ static Node	*stmt(void)
 		return (node);
 	}
 
-	if (consume("while"))
+	if ((tok = consume("while")))
 	{
 		expect("(");
-		node = new_node(ND_WHILE, NULL, NULL);
+		node = new_node(ND_WHILE, tok);
 		node->cond = expr();
 		expect(")");
 		node->then = stmt();
 		return (node);
 	}
 
-	if (consume("for"))
+	if ((tok = consume("for")))
 	{
 		expect("(");
-		node = new_node(ND_FOR, NULL, NULL);
+		node = new_node(ND_FOR, tok);
 		if (!consume(";"))
 		{
 			node->init = expr();
@@ -177,7 +226,7 @@ static Node	*stmt(void)
 		return (node);
 	}
 
-	if (consume("{"))
+	if ((tok = consume("{")))
 	{
 		Node	head = {};
 		Node	*cur = &head;
@@ -188,7 +237,7 @@ static Node	*stmt(void)
 			cur = cur->next;
 		}
 
-		node = new_node(ND_BLOCK, NULL, NULL);
+		node = new_node(ND_BLOCK, tok);
 		node->body = head.next;
 		return (node);
 	}
@@ -206,22 +255,24 @@ static Node	*expr(void)
 static Node	*assign(void)
 {
 	Node	*node = equality();
+	Token	*tok;
 
-	if (consume("="))
-		node = new_node(ND_ASSIGN, node, assign());
+	if ((tok = consume("=")))
+		node = new_binary_node(ND_ASSIGN, node, assign(), tok);
 	return (node);
 }
 
 static Node	*equality(void)
 {
 	Node	*node = relational();
+	Token	*tok;
 
 	while (true)
 	{
-		if (consume("=="))
-			node = new_node(ND_EQ, node, relational());
-		else if (consume("!="))
-			node = new_node(ND_NEQ, node, relational());
+		if ((tok = consume("==")))
+			node = new_binary_node(ND_EQ, node, relational(), tok);
+		else if ((tok = consume("!=")))
+			node = new_binary_node(ND_NEQ, node, relational(), tok);
 		else
 			return (node);
 	}
@@ -230,17 +281,18 @@ static Node	*equality(void)
 static Node	*relational(void)
 {
 	Node	*node = add();
+	Token	*tok;
 
 	while (true)
 	{
-		if (consume("<="))
-			node = new_node(ND_LTE, node, add());
-		else if (consume(">="))
-			node = new_node(ND_GTE, node, add());
-		else if (consume("<"))
-			node = new_node(ND_LT, node, add());
-		else if (consume(">"))
-			node = new_node(ND_GT, node, add());
+		if ((tok = consume("<=")))
+			node = new_binary_node(ND_LTE, node, add(), tok);
+		else if ((tok = consume(">=")))
+			node = new_binary_node(ND_GTE, node, add(), tok);
+		else if ((tok = consume("<")))
+			node = new_binary_node(ND_LT, node, add(), tok);
+		else if ((tok = consume(">")))
+			node = new_binary_node(ND_GT, node, add(), tok);
 		else
 			return (node);
 	}
@@ -249,13 +301,14 @@ static Node	*relational(void)
 static Node	*add(void)
 {
 	Node	*node = mul();
+	Token	*tok;
 
 	while (true)
 	{
-		if (consume("+"))
-			node = new_node(ND_ADD, node, mul());
-		else if (consume("-"))
-			node = new_node(ND_SUB, node, mul());
+		if ((tok = consume("+")))
+			node = new_binary_node(ND_ADD, node, mul(), tok);
+		else if ((tok = consume("-")))
+			node = new_binary_node(ND_SUB, node, mul(), tok);
 		else
 			return (node);
 	}
@@ -264,13 +317,14 @@ static Node	*add(void)
 static Node	*mul(void)
 {
 	Node	*node = unary();
+	Token	*tok;
 
 	while (true)
 	{
-		if (consume("*"))
-			node = new_node(ND_MUL, node, unary());
-		else if (consume("/"))
-			node = new_node(ND_DIV, node, unary());
+		if ((tok = consume("*")))
+			node = new_binary_node(ND_MUL, node, unary(), tok);
+		else if ((tok = consume("/")))
+			node = new_binary_node(ND_DIV, node, unary(), tok);
 		else
 			return (node);
 	}
@@ -278,10 +332,16 @@ static Node	*mul(void)
 
 static Node	*unary(void)
 {
-	if (consume("+"))
+	Token	*tok;
+
+	if ((tok = consume("+")))
 		return (unary());
-	else if (consume("-"))
-		return (new_node(ND_SUB, new_node_number(0), unary()));
+	if ((tok = consume("-")))
+		return (new_binary_node(ND_SUB, new_number_node(0, token), unary(), tok));
+	if ((tok = consume("&")))
+		return (new_unary_node(ND_ADDR, unary(), tok));
+	if ((tok = consume("*")))
+		return (new_unary_node(ND_DEREF, unary(), tok));
 	return primary();
 }
 
@@ -297,42 +357,21 @@ static Node	*primary(void)
 	Token	*tok = consume_ident();
 	if (tok)
 	{
-		Node	*node = (Node *)calloc(1, sizeof(Node));
-
 		if (consume("("))
 		{
-			node->kind = ND_FUNCALL;
-			char	*s = substr(tok->str, tok->len);
-			if (!s)
-				exit_with_error();
-			node->funcname = s;
+			Node	*node = new_node(ND_FUNCALL, tok);
+			node->funcname = substr(tok->str, tok->len);
 			node->args = args();
 			return (node);
 		}
 
-		node->kind = ND_VAR;
 		Var	*lvar = find_lvar(tok);
-		if (lvar)
-			node->offset = lvar->offset;
-		else
-		{
-			lvar = (Var *)calloc(1, sizeof(Var));
-			if (!lvar)
-				exit_with_error();
-			lvar->next = locals;
-			lvar->name = tok->str;
-			lvar->len = tok->len;
-			if (locals)
-				lvar->offset = locals->offset + 8;
-			else
-				lvar->offset = 8;
-			node->offset = lvar->offset;
-			locals = lvar;
-		}
-		return (node);
+		if (!lvar)
+			lvar = new_lvar(substr(tok->str, tok->len));
+		return (new_var_node(lvar, tok));
 	}
 
-	return (new_node_number(expect_number()));
+	return (new_number_node(expect_number(), token));
 }
 
 static Node	*args(void)

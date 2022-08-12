@@ -21,15 +21,16 @@ void	error_at(char *loc, char *fmt, ...)
 }
 
 // 次のトークンが期待している記号のときには､トークンを1つ読み進めて
-// 真を返す｡それ以外の場合には偽を返す｡
-bool	consume(char *op)
+// そのトークンを返す｡それ以外の場合にはNULLを返す｡
+Token	*consume(char *op)
 {
 	if (token->kind != TK_RESERVED ||
 		strlen(op) != token->len ||
 		memcmp(token->str, op, token->len) != 0)
-		return (false);
+		return (NULL);
+	Token	*tok = token;
 	token = token->next;
-	return (true);
+	return (tok);
 }
 
 // 次のトークンがidentifierのときには､トークンを1つ読み進めて
@@ -70,6 +71,20 @@ int	expect_number(void)
 	return (val);
 }
 
+// 次のトークンが識別子の場合､トークンを1つ読み進めてその数値を返す｡
+// それ以外の場合にはエラーを報告する｡
+char	*expect_ident(void)
+{
+	if (token->kind != TK_IDENT)
+	{
+		error_at(token->str, "識別子ではありません");
+		exit(1);
+	}
+	char	*str = substr(token->str, token->len);
+	token = token->next;
+	return (str);
+}
+
 // 終端チェック
 bool	at_eof(void)
 {
@@ -80,6 +95,8 @@ bool	at_eof(void)
 static Token	*new_token(TokenKind kind, Token *cur, char *str, size_t len)
 {
 	Token	*tok = (Token *)calloc(1, sizeof(Token));
+	if (!tok)
+		exit_with_error();
 	tok->kind = kind;
 	tok->str = str;
 	tok->len = len;
