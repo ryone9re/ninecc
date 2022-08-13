@@ -71,7 +71,7 @@ int	expect_number(void)
 	return (val);
 }
 
-// 次のトークンが識別子の場合､トークンを1つ読み進めてその数値を返す｡
+// 次のトークンが識別子の場合､トークンを1つ読み進めてその文字を返す｡
 // それ以外の場合にはエラーを報告する｡
 char	*expect_ident(void)
 {
@@ -81,6 +81,24 @@ char	*expect_ident(void)
 		exit(1);
 	}
 	char	*str = substr(token->str, token->len);
+	token = token->next;
+	return (str);
+}
+
+// 次のトークンが指定された識別子の場合､トークンを1つ読み進める｡
+// それ以外の場合にはエラーを報告する｡
+char	*expect_specified_ident(char *str)
+{
+	if (token->kind != TK_IDENT)
+	{
+		error_at(token->str, "指定された識別子ではありません");
+		exit(1);
+	}
+	if (strncmp(token->str, str, token->len))
+	{
+		error_at(token->str, "指定された識別子ではありません");
+		exit(1);
+	}
 	token = token->next;
 	return (str);
 }

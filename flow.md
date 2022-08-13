@@ -1,9 +1,9 @@
 ```
 program		=	function*
 
-function	=	ident params "{" stmt* "}"
+function	=	type ident params "{" stmt* "}"
 
-params		=	"(" (ident ("," ident)*)? ")"
+params		=	"(" (type ident ("," type ident)*)? ")"
 
 stmt		=	"return" expr ";"
 			|	"if" "(" expr ")" stmt ("else" stmt)?
@@ -27,8 +27,11 @@ mul			=	unary ("*" unary | "/" unary)*
 unary		=	("+" | "-" | "&" | "*")? unary | primary
 
 primary		=	"(" expr ")"
+			|	type ident
 			|	ident args?
 			|	num
 
 args		=	"(" (assign ("," assign)*)? ")"
+
+type		=	"int"
 ```

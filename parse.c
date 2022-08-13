@@ -115,6 +115,9 @@ Function	*function(void)
 {
 	locals = NULL;
 
+	// 返り値の型
+	expect_specified_ident("int");
+
 	// 関数名宣言
 	Token	*funcdec = consume_ident();
 	if (!funcdec)
@@ -152,6 +155,8 @@ static VarList	*params(void)
 	if (consume(")"))
 		return (NULL);
 
+	expect_specified_ident("int");
+
 	VarList	*head = (VarList *)calloc(1, sizeof(VarList));
 	if (!head)
 		exit_with_error();
@@ -161,6 +166,7 @@ static VarList	*params(void)
 	while (!consume(")"))
 	{
 		expect(",");
+		expect_specified_ident("int");
 		cur->next = (VarList *)calloc(1, sizeof(VarList));
 		cur->next->var = new_lvar(expect_ident());
 		cur = cur->next;
@@ -357,6 +363,7 @@ static Node	*primary(void)
 	Token	*tok = consume_ident();
 	if (tok)
 	{
+		// 関数呼び出し
 		if (consume("("))
 		{
 			Node	*node = new_node(ND_FUNCALL, tok);
@@ -365,9 +372,17 @@ static Node	*primary(void)
 			return (node);
 		}
 
+		// 変数宣言
+		Token	*vardec = consume_ident();
+		if (vardec)
+		{
+			new_lvar(substr(vardec->str, vardec->len));
+			return (new_node(ND_NULL, tok));
+		}
+
 		Var	*lvar = find_lvar(tok);
 		if (!lvar)
-			lvar = new_lvar(substr(tok->str, tok->len));
+			error("未定義の変数です");
 		return (new_var_node(lvar, tok));
 	}
 

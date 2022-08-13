@@ -9,10 +9,10 @@
 // トークンの種類
 typedef enum
 {
+	TK_EOF,			// 入力の終わりを示すトークン
 	TK_RESERVED,	// 予約語
 	TK_IDENT,		// 識別子
 	TK_NUM,			// 整数トークン
-	TK_EOF,			// 入力の終わりを示すトークン
 }	TokenKind;
 
 // トークン型
@@ -45,6 +45,7 @@ struct VarList
 // 抽象構文木のノードの種類
 typedef enum
 {
+	ND_NULL,	// 空
 	ND_ADD,		// +
 	ND_SUB,		// -
 	ND_MUL,		// *
@@ -131,6 +132,7 @@ Token	*consume_ident(void);
 void	expect(char *op);
 int		expect_number(void);
 char	*expect_ident(void);
+char	*expect_specified_ident(char *str);
 bool	at_eof(void);
 int		is_tokstr(char c);
 Token	*tokenize(void);
