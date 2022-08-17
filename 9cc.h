@@ -37,7 +37,7 @@ typedef enum
 typedef struct Type Type;
 struct Type
 {
-	TypeKind	ty;			// 型の種類
+	TypeKind	kind;		// 型の種類
 	Type		*ptr_to;	// ポインタ型の場合､その指し示す先
 };
 
@@ -80,7 +80,6 @@ typedef enum
 	ND_WHILE,	// while
 	ND_FOR,		// for
 	ND_BLOCK,	// {...}
-	ND_FUNCDEC,	// 関数宣言
 	ND_FUNCALL,	// 関数呼び出し
 	ND_VAR,		// 変数
 	ND_NUM,		// 整数
@@ -93,6 +92,7 @@ struct Node
 	NodeKind	kind;	// ノードの型
 	Token		*tok;	// ノードに対応するトークン
 	Node		*next;	// 次のNode
+	Type		*type;	// ノードの型
 
 	Node		*lhs;	// 左辺
 	Node		*rhs;	// 右辺
@@ -111,7 +111,7 @@ struct Node
 	char		*funcname;	// 関数名
 	Node		*args;		// 実引数
 
-	Var			*var;		// kindがBD_VARの場合のみ使う
+	Var			*var;		// kindがND_VARの場合のみ使う
 	int			val;		// kindがND_NUMの場合のみ使う
 };
 
@@ -156,6 +156,7 @@ Token	*tokenize(void);
 
 /* type.c */
 Type	*new_type(TypeKind tk, Type *ptr_to);
+void	add_type(Function *func);
 
 /* utils.c */
 void	error(char *fmt, ...);

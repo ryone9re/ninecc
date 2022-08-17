@@ -167,9 +167,13 @@ static void	gen(Node *node)
 	switch (node->kind)
 	{
 	case ND_ADD:
+		if (node->type->kind == TYPE_PTR)
+			printf("\timul rdi,8\n");
 		printf("\tadd rax, rdi\n");
 		break ;
 	case ND_SUB:
+		if (node->type->kind == TYPE_PTR)
+			printf("\timul rdi,8\n");
 		printf("\tsub rax, rdi\n");
 		break ;
 	case ND_MUL:
