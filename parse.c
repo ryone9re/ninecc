@@ -382,7 +382,7 @@ static Node	*primary(void)
 
 		Var	*lvar = find_lvar(tok);
 		if (!lvar)
-			error("未定義の変数です");
+			error_at(tok->str, "未定義の変数です");
 		return (new_var_node(lvar, tok));
 	}
 

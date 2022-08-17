@@ -37,7 +37,7 @@ static void	store(void)
 	printf("\tpop rdi\n");
 	printf("\tpop rax\n");
 	printf("\tmov [rax], rdi\n");
-	printf("\tpush rdi\n");
+	// printf("\tpush rdi\n");
 }
 
 static void	gen(Node *node)
@@ -46,6 +46,8 @@ static void	gen(Node *node)
 		return ;
 	switch (node->kind)
 	{
+	case ND_NULL:
+		return ;
 	case ND_RETURN:
 		gen(node->lhs);
 		printf("\tpop rax\n");
