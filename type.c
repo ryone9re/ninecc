@@ -34,6 +34,9 @@ static void	visit(Node *node)
 
 	switch (node->kind)
 	{
+	case ND_VAR:
+		node->type = node->var->type;
+		return ;
 	case ND_MUL:
 	case ND_DIV:
 	case ND_EQ:
@@ -42,7 +45,6 @@ static void	visit(Node *node)
 	case ND_LTE:
 	case ND_GT:
 	case ND_GTE:
-	case ND_VAR:
 	case ND_FUNCALL:
 	case ND_NUM:
 		node->type = new_type(TYPE_INT, NULL);
@@ -62,7 +64,7 @@ static void	visit(Node *node)
 		return ;
 	case ND_SUB:
 		if (node->rhs->type->kind == TYPE_PTR)
-			error_at(node->rhs->tok->str, "ポインタの値を引くことはできません");
+			error_at(node->rhs->tok->str, "ポインタの値で引くことはできません");
 		node->type = node->lhs->type;
 		return ;
 	case ND_ASSIGN:
