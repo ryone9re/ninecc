@@ -69,11 +69,13 @@ static Node	*new_var_node(Var *var, Token *tok)
 }
 
 // 新規変数を作成
-static Var	*new_lvar(char *name)
+static Var	*new_var(Type *type, char *name)
 {
 	Var	*var = (Var *)calloc(1, sizeof(Var));
 	if (!var)
 		exit_with_error();
+
+	var->type = type;
 	var->name = name;
 
 	VarList	*vl = (VarList *)calloc(1, sizeof(VarList));
@@ -88,6 +90,7 @@ static Var	*new_lvar(char *name)
 static Function	*function(void);
 static VarList	*params(void);
 static Node		*stmt(void);
+static Node		*declaration(void);
 static Node		*expr(void);
 static Node		*assign(void);
 static Node		*equality(void);
@@ -161,14 +164,14 @@ static VarList	*params(void)
 	if (!head)
 		exit_with_error();
 	VarList	*cur = head;
-	cur->var = new_lvar(expect_ident());
+	cur->var = new_var(new_type(TYPE_INT, NULL), expect_ident());
 
 	while (!consume(")"))
 	{
 		expect(",");
 		expect_specified_ident("int");
 		cur->next = (VarList *)calloc(1, sizeof(VarList));
-		cur->next->var = new_lvar(expect_ident());
+		cur->next->var = new_var(new_type(TYPE_INT, NULL), expect_ident());
 		cur = cur->next;
 	}
 
@@ -248,9 +251,39 @@ static Node	*stmt(void)
 		return (node);
 	}
 
+	if ((tok = peek("int")))
+	{
+		node = declaration();
+		expect(";");
+		return (node);
+	}
+
 	node = expr();
 	expect(";");
 	return (node);
+}
+
+static Node	*declaration(void)
+{
+	Token	*tok;
+	Type	*type;
+	Token	*var;
+
+	tok = consume_ident();
+	if (!tok)
+		error_at(tok->str, "不正な変数宣言です");
+
+	type = new_type(TYPE_INT, NULL);
+	while (consume("*"))
+		type = new_type(TYPE_PTR, type);
+
+	var = consume_ident();
+	if (!var)
+		error_at(var->str, "不正な変数宣言です");
+
+	new_var(type, substr(var->str, var->len));
+
+	return (new_node(ND_NULL, tok));
 }
 
 static Node	*expr(void)
@@ -372,14 +405,7 @@ static Node	*primary(void)
 			return (node);
 		}
 
-		// 変数宣言
-		Token	*vardec = consume_ident();
-		if (vardec)
-		{
-			new_lvar(substr(vardec->str, vardec->len));
-			return (new_node(ND_NULL, tok));
-		}
-
+		// 変数
 		Var	*lvar = find_lvar(tok);
 		if (!lvar)
 			error_at(tok->str, "未定義の変数です");

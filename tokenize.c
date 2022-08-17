@@ -20,6 +20,17 @@ void	error_at(char *loc, char *fmt, ...)
 	exit(1);
 }
 
+// 次のトークンが期待している文字のときにはそのトークンを返す｡
+// トークンは読み進めない｡
+Token	*peek(char *op)
+{
+	if (token->kind != TK_IDENT ||
+		strlen(op) != token->len ||
+		memcmp(token->str, op, token->len) != 0)
+		return (NULL);
+	return (token);
+}
+
 // 次のトークンが期待している記号のときには､トークンを1つ読み進めて
 // そのトークンを返す｡それ以外の場合にはNULLを返す｡
 Token	*consume(char *op)

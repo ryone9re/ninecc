@@ -26,10 +26,26 @@ struct Token
 	size_t		len;	//トークンの長さ
 };
 
+// 型の種類
+typedef enum
+{
+	TYPE_INT,	// 整数型
+	TYPE_PTR,	// ポインタ型
+}	TypeKind;
+
+// 型の構造
+typedef struct Type Type;
+struct Type
+{
+	TypeKind	ty;			// 型の種類
+	Type		*ptr_to;	// ポインタ型の場合､その指し示す先
+};
+
 // 変数の型
 typedef struct Var		Var;
 struct Var
 {
+	Type		*type;	// 変数の型
 	char		*name;	// 変数の名前
 	size_t		offset;	// RBPからのオフセット
 };
@@ -127,6 +143,7 @@ Function	*program(void);
 
 /* tokenize.c */
 void	error_at(char *loc, char *fmt, ...);
+Token	*peek(char *op);
 Token	*consume(char *op);
 Token	*consume_ident(void);
 void	expect(char *op);
@@ -136,6 +153,9 @@ char	*expect_specified_ident(char *str);
 bool	at_eof(void);
 int		is_tokstr(char c);
 Token	*tokenize(void);
+
+/* type.c */
+Type	*new_type(TypeKind tk, Type *ptr_to);
 
 /* utils.c */
 void	error(char *fmt, ...);
