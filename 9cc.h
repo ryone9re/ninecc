@@ -13,6 +13,7 @@ typedef enum
 	TK_RESERVED,	// 予約語
 	TK_IDENT,		// 識別子
 	TK_NUM,			// 整数トークン
+	TK_SIZEOF,		// sizeof演算子
 }	TokenKind;
 
 // トークン型
@@ -66,6 +67,7 @@ typedef enum
 	ND_SUB,		// -
 	ND_MUL,		// *
 	ND_DIV,		// /
+	ND_SIZEOF,	// sizeof
 	ND_ASSIGN,	// =
 	ND_LT,		// <
 	ND_LTE,		// <=

@@ -35,8 +35,7 @@ Token	*peek(char *op)
 // そのトークンを返す｡それ以外の場合にはNULLを返す｡
 Token	*consume(char *op)
 {
-	if (token->kind != TK_RESERVED ||
-		strlen(op) != token->len ||
+	if (strlen(op) != token->len ||
 		memcmp(token->str, op, token->len) != 0)
 		return (NULL);
 	Token	*tok = token;
@@ -133,16 +132,16 @@ static Token	*new_token(TokenKind kind, Token *cur, char *str, size_t len)
 	return (tok);
 }
 
-// pがqで始まるか判定
-static bool	starts_with(char *p, char *q)
-{
-	return (strncmp(p, q, strlen(q)) == 0);
-}
-
 // identifierを構成する文字か判定
 int	is_tokstr(char c)
 {
 	return (isalnum(c) || c == '_');
+}
+
+// pがqで始まるか判定
+static bool	starts_with(char *p, char *q)
+{
+	return (strncmp(p, q, strlen(q)) == 0);
 }
 
 // 予約語か確認
@@ -170,6 +169,25 @@ static char	*starts_with_reserved(char *p)
 			continue ;
 		if (starts_with(p, ops[i]))
 			return (ops[i]);
+	}
+
+	return (NULL);
+}
+
+// sizeofの演算子か確認
+static char	*starts_with_sizeof(char *p)
+{
+	size_t	l = strlen(p);
+
+	static char	*kw[] = {"sizeof"};
+
+	for (size_t i = 0; i < sizeof(kw) / sizeof(*kw); i++)
+	{
+		size_t	len = strlen(kw[i]);
+		if (l < len)
+			continue ;
+		if (starts_with(p, kw[i]) && !is_tokstr(p[len]))
+			return (kw[i]);
 	}
 
 	return (NULL);
@@ -203,7 +221,17 @@ Token	*tokenize(void)
 		if (q)
 		{
 			size_t	len = strlen(q);
-			cur = new_token(TK_RESERVED, cur, q, len);
+			cur = new_token(TK_RESERVED, cur, p, len);
+			p = p + len;
+			continue ;
+		}
+
+		// sizeof演算子
+		q = starts_with_sizeof(p);
+		if (q)
+		{
+			size_t	len = strlen(q);
+			cur = new_token(TK_SIZEOF, cur, p, len);
 			p = p + len;
 			continue ;
 		}

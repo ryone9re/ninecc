@@ -100,4 +100,15 @@ assert 5 'int main() { int x; int y; x=3; y=&x; *y=5; return x; }'
 assert 7 'int main() { int x; int y; x=3; y=5; *(&x+1)=7; return y; }'
 assert 7 'int main() { int x; int y; x=3; y=5; *(&y-1)=7; return x; }'
 
+assert 8 'int main() { int x; return sizeof(x); }'
+assert 8 'int main() { int x; return sizeof x; }'
+assert 8 'int main() { int *x; return sizeof(x); }'
+#assert 32 'int main() { int x[4]; return sizeof(x); }'
+#assert 96 'int main() { int x[3][4]; return sizeof(x); }'
+#assert 32 'int main() { int x[3][4]; return sizeof(*x); }'
+#assert 8 'int main() { int x[3][4]; return sizeof(**x); }'
+#assert 9 'int main() { int x[3][4]; return sizeof(**x) + 1; }'
+#assert 9 'int main() { int x[3][4]; return sizeof **x + 1; }'
+#assert 8 'int main() { int x[3][4]; return sizeof(**x + 1); }'
+
 echo OK

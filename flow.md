@@ -27,7 +27,9 @@ add			=	mul ("+" mul | "-" mul)*
 
 mul			=	unary ("*" unary | "/" unary)*
 
-unary		=	("+" | "-" | "&" | "*")? unary | primary
+unary		=	"sizeof" unary
+			|	("+" | "-" | "&" | "*")? unary
+			|	primary
 
 primary		=	"(" expr ")"
 			|	ident args?

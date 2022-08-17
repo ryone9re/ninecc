@@ -79,6 +79,15 @@ static void	visit(Node *node)
 		else
 			node->type = new_type(TYPE_INT, NULL);
 		return ;
+	case ND_SIZEOF:
+		if (node->lhs->type->kind == TYPE_INT)
+			node->val = 8;
+		else
+			node->val = 8;
+		node->kind = ND_NUM;
+		node->type = new_type(TYPE_INT, NULL);
+		node->lhs = NULL;
+		return ;
 	default:
 		return ;
 	}

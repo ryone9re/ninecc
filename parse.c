@@ -373,6 +373,8 @@ static Node	*unary(void)
 {
 	Token	*tok;
 
+	if ((tok = consume("sizeof")))
+		return (new_unary_node(ND_SIZEOF, unary(), tok));
 	if ((tok = consume("+")))
 		return (unary());
 	if ((tok = consume("-")))
