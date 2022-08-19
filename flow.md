@@ -1,9 +1,11 @@
 ```
-program		=	function*
+program		=	(global_var | function)*
 
-function	=	type ident params "{" stmt* "}"
+global_var	=	basetype ident ("[" num "]")* ";"
 
-params		=	"(" (type ident ("," type ident)*)? ")"
+function	=	basetype ident params "{" stmt* "}"
+
+params		=	"(" (basetype ident ("," basetype ident)*)? ")"
 
 stmt		=	"return" expr ";"
 			|	"if" "(" expr ")" stmt ("else" stmt)?
@@ -13,7 +15,7 @@ stmt		=	"return" expr ";"
 			|	declaration ";"
 			|	expr ";"
 
-declaration	=	type ident
+declaration	=	basetype ident ("[" num "]")*
 
 expr		=	assign
 
@@ -29,7 +31,9 @@ mul			=	unary ("*" unary | "/" unary)*
 
 unary		=	"sizeof" unary
 			|	("+" | "-" | "&" | "*")? unary
-			|	primary
+			|	postfix
+
+postfix		=	primary ("[" expr "]")*
 
 primary		=	"(" expr ")"
 			|	ident args?
@@ -37,5 +41,5 @@ primary		=	"(" expr ")"
 
 args		=	"(" (assign ("," assign)*)? ")"
 
-type		=	"int" "*"*
+basetype	=	"int" "*"*
 ```

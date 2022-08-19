@@ -16,7 +16,7 @@ assert() {
 	input="$2"
 
 	./9cc "$input" > tmp.s
-	cc -o tmp tmp.s tmp2.o
+	cc -o tmp -no-pie tmp.s tmp2.o
 	./tmp
 	actual="$?"
 
@@ -93,22 +93,60 @@ assert 1 'int main() { return sub2(4,3); } int sub2(int x, int y) { return x-y; 
 assert 55 'int main() { return fib(9); } int fib(int x) { if (x<=1) return 1; return fib(x-1) + fib(x-2); }'
 
 assert 3 'int main() { int x; x=3; return *&x; }'
-assert 3 'int main() { int x; int y; int z; x=3; y=&x; z=&y; return **z; }'
+assert 3 'int main() { int x; int *y; int **z; x=3; y=&x; z=&y; return **z; }'
 assert 5 'int main() { int x; int y; x=3; y=5; return *(&x+1); }'
 assert 3 'int main() { int x; int y; x=3; y=5; return *(&y-1); }'
-assert 5 'int main() { int x; int y; x=3; y=&x; *y=5; return x; }'
+assert 5 'int main() { int x; int *y; x=3; y=&x; *y=5; return x; }'
 assert 7 'int main() { int x; int y; x=3; y=5; *(&x+1)=7; return y; }'
 assert 7 'int main() { int x; int y; x=3; y=5; *(&y-1)=7; return x; }'
+
+assert 3 'int main() { int x[2]; int *y; y=&x; *y=3; return *x; }'
+
+assert 3 'int main() { int x[3]; *x=3; *(x+1)=4; *(x+2)=5; return *x; }'
+assert 4 'int main() { int x[3]; *x=3; *(x+1)=4; *(x+2)=5; return *(x+1); }'
+assert 5 'int main() { int x[3]; *x=3; *(x+1)=4; *(x+2)=5; return *(x+2); }'
+
+assert 0 'int main() { int x[2][3]; int *y; y=x; *y=0; return **x; }'
+assert 1 'int main() { int x[2][3]; int *y; y=x; *(y+1)=1; return *(*x+1); }'
+assert 2 'int main() { int x[2][3]; int *y; y=x; *(y+2)=2; return *(*x+2); }'
+assert 3 'int main() { int x[2][3]; int *y; y=x; *(y+3)=3; return **(x+1); }'
+assert 4 'int main() { int x[2][3]; int *y; y=x; *(y+4)=4; return *(*(x+1)+1); }'
+assert 5 'int main() { int x[2][3]; int *y; y=x; *(y+5)=5; return *(*(x+1)+2); }'
+assert 6 'int main() { int x[2][3]; int *y; y=x; *(y+6)=6; return **(x+2); }'
 
 assert 8 'int main() { int x; return sizeof(x); }'
 assert 8 'int main() { int x; return sizeof x; }'
 assert 8 'int main() { int *x; return sizeof(x); }'
-#assert 32 'int main() { int x[4]; return sizeof(x); }'
-#assert 96 'int main() { int x[3][4]; return sizeof(x); }'
-#assert 32 'int main() { int x[3][4]; return sizeof(*x); }'
-#assert 8 'int main() { int x[3][4]; return sizeof(**x); }'
-#assert 9 'int main() { int x[3][4]; return sizeof(**x) + 1; }'
-#assert 9 'int main() { int x[3][4]; return sizeof **x + 1; }'
-#assert 8 'int main() { int x[3][4]; return sizeof(**x + 1); }'
+assert 32 'int main() { int x[4]; return sizeof(x); }'
+assert 96 'int main() { int x[3][4]; return sizeof(x); }'
+assert 32 'int main() { int x[3][4]; return sizeof(*x); }'
+assert 8 'int main() { int x[3][4]; return sizeof(**x); }'
+assert 9 'int main() { int x[3][4]; return sizeof(**x) + 1; }'
+assert 9 'int main() { int x[3][4]; return sizeof **x + 1; }'
+assert 8 'int main() { int x[3][4]; return sizeof(**x + 1); }'
+
+assert 3 'int main() { int x[3]; *x=3; x[1]=4; x[2]=5; return *x; }'
+assert 4 'int main() { int x[3]; *x=3; x[1]=4; x[2]=5; return *(x+1); }'
+assert 5 'int main() { int x[3]; *x=3; x[1]=4; x[2]=5; return *(x+2); }'
+assert 5 'int main() { int x[3]; *x=3; x[1]=4; x[2]=5; return *(x+2); }'
+assert 5 'int main() { int x[3]; *x=3; x[1]=4; 2[x]=5; return *(x+2); }'
+
+assert 0 'int main() { int x[2][3]; int *y; y=x; y[0]=0; return x[0][0]; }'
+assert 1 'int main() { int x[2][3]; int *y; y=x; y[1]=1; return x[0][1]; }'
+assert 2 'int main() { int x[2][3]; int *y; y=x; y[2]=2; return x[0][2]; }'
+assert 3 'int main() { int x[2][3]; int *y; y=x; y[3]=3; return x[1][0]; }'
+assert 4 'int main() { int x[2][3]; int *y; y=x; y[4]=4; return x[1][1]; }'
+assert 5 'int main() { int x[2][3]; int *y; y=x; y[5]=5; return x[1][2]; }'
+assert 6 'int main() { int x[2][3]; int *y; y=x; y[6]=6; return x[2][0]; }'
+
+assert 0 'int x; int main() { return x; }'
+assert 3 'int x; int main() { x=3; return x; }'
+assert 0 'int x[4]; int main() { x[0]=0; x[1]=1; x[2]=2; x[3]=3; return x[0]; }'
+assert 1 'int x[4]; int main() { x[0]=0; x[1]=1; x[2]=2; x[3]=3; return x[1]; }'
+assert 2 'int x[4]; int main() { x[0]=0; x[1]=1; x[2]=2; x[3]=3; return x[2]; }'
+assert 3 'int x[4]; int main() { x[0]=0; x[1]=1; x[2]=2; x[3]=3; return x[3]; }'
+
+assert 8 'int x; int main() { return sizeof(x); }'
+assert 32 'int x[4]; int main() { return sizeof(x); }'
 
 echo OK

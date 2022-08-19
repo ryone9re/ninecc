@@ -14,6 +14,13 @@ Type	*new_type(TypeKind tk, Type *ptr_to)
 	return (type);
 }
 
+Type	*new_type_array(TypeKind tk, Type* ptr_to, size_t len)
+{
+	Type	*type = new_type(tk, ptr_to);
+	type->array_len = len;
+	return (type);
+}
+
 static void	visit(Node *node)
 {
 	if (!node)
@@ -51,19 +58,19 @@ static void	visit(Node *node)
 		return ;
 	case ND_ADD:
 		// 右オペランドにポインタがきてたら入れ替える
-		if (node->rhs->type->kind == TYPE_PTR)
+		if (node->rhs->type->ptr_to)
 		{
 			Node	*tmp = node->lhs;
 			node->lhs = node->rhs;
 			node->rhs = tmp;
 		}
 		// ポインタ同士の加算は不正
-		if (node->rhs->type->kind == TYPE_PTR)
+		if (node->rhs->type->ptr_to)
 			error_at(node->tok->str, "ポインタ同士の演算は不正です");
 		node->type = node->lhs->type;
 		return ;
 	case ND_SUB:
-		if (node->rhs->type->kind == TYPE_PTR)
+		if (node->rhs->type->ptr_to)
 			error_at(node->rhs->tok->str, "ポインタの値で引くことはできません");
 		node->type = node->lhs->type;
 		return ;
@@ -71,19 +78,18 @@ static void	visit(Node *node)
 		node->type = node->lhs->type;
 		return ;
 	case ND_ADDR:
-		node->type = new_type(TYPE_PTR, node->lhs->type);
+		if (node->lhs->type->kind == TYPE_ARRAY)
+			node->type = new_type(TYPE_PTR, node->lhs->type->ptr_to);
+		else
+			node->type = new_type(TYPE_PTR, node->lhs->type);
 		return ;
 	case ND_DEREF:
-		if (node->lhs->type->kind == TYPE_PTR)
-			node->type = node->lhs->type->ptr_to;
-		else
-			node->type = new_type(TYPE_INT, NULL);
+		if (!node->lhs->type->ptr_to)
+			error_at(node->tok->str, "参照先がありません");
+		node->type = node->lhs->type->ptr_to;
 		return ;
 	case ND_SIZEOF:
-		if (node->lhs->type->kind == TYPE_INT)
-			node->val = 8;
-		else
-			node->val = 8;
+		node->val = size_of(node->lhs->type);
 		node->kind = ND_NUM;
 		node->type = new_type(TYPE_INT, NULL);
 		node->lhs = NULL;
@@ -93,9 +99,9 @@ static void	visit(Node *node)
 	}
 }
 
-void	add_type(Function *func)
+void	add_type(Program *prog)
 {
-	for (Function *f = func; f; f = f->next)
+	for (Function *f = prog->functions; f; f = f->next)
 		for (Node *n = f->node; n; n = n->next)
 			visit(n);
 }

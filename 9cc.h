@@ -22,9 +22,9 @@ struct Token
 {
 	TokenKind	kind;	// トークンの型
 	Token		*next;	// 次の入力トークン
-	int			val;	// KindがTK_NUMの場合､その数値
+	size_t		val;	// KindがTK_NUMの場合､その数値
 	char		*str;	// トークン文字列
-	size_t		len;	//トークンの長さ
+	size_t		len;	// トークンの長さ
 };
 
 // 型の種類
@@ -32,6 +32,7 @@ typedef enum
 {
 	TYPE_INT,	// 整数型
 	TYPE_PTR,	// ポインタ型
+	TYPE_ARRAY,	// 配列
 }	TypeKind;
 
 // 型の構造
@@ -40,15 +41,19 @@ struct Type
 {
 	TypeKind	kind;		// 型の種類
 	Type		*ptr_to;	// ポインタ型の場合､その指し示す先
+	size_t		array_len;	// 配列の長さ
 };
 
 // 変数の型
 typedef struct Var		Var;
 struct Var
 {
-	Type		*type;	// 変数の型
-	char		*name;	// 変数の名前
-	size_t		offset;	// RBPからのオフセット
+	Type		*type;		// 変数の型
+	char		*name;		// 変数の名前
+	bool		is_local;	// ローカル変数かどうか
+
+	/* ローカル変数時 */
+	size_t		offset;		// RBPからのオフセット
 };
 
 // 変数のリスト
@@ -128,20 +133,30 @@ struct Function
 	size_t		stack_size;
 };
 
+typedef struct Program	Program;
+struct Program
+{
+	Function	*functions;
+	VarList		*globals;
+};
+
 /* グローバル変数宣言 */
 // 現在着目しているトークン
 extern Token	*token;
 // 入力プログラム
-extern char	*user_input;
+extern char		*user_input;
 
 /* プロトタイプ宣言 */
 
 /* codegen.c */
 Var		*find_lvar(Token *tok);
-void	codegen(Function *prog);
+void	codegen(Program *prog);
 
 /* parse.c */
-Function	*program(void);
+Program	*program(void);
+
+/* size.c */
+size_t	size_of(Type *type);
 
 /* tokenize.c */
 void	error_at(char *loc, char *fmt, ...);
@@ -149,7 +164,7 @@ Token	*peek(char *op);
 Token	*consume(char *op);
 Token	*consume_ident(void);
 void	expect(char *op);
-int		expect_number(void);
+size_t	expect_number(void);
 char	*expect_ident(void);
 char	*expect_specified_ident(char *str);
 bool	at_eof(void);
@@ -158,7 +173,8 @@ Token	*tokenize(void);
 
 /* type.c */
 Type	*new_type(TypeKind tk, Type *ptr_to);
-void	add_type(Function *func);
+Type	*new_type_array(TypeKind tk, Type* ptr_to, size_t len);
+void	add_type(Program *prog);
 
 /* utils.c */
 void	error(char *fmt, ...);

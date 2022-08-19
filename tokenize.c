@@ -1,6 +1,7 @@
 #include "9cc.h"
 #include <ctype.h>
 #include <stdarg.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -24,8 +25,7 @@ void	error_at(char *loc, char *fmt, ...)
 // トークンは読み進めない｡
 Token	*peek(char *op)
 {
-	if (token->kind != TK_IDENT ||
-		strlen(op) != token->len ||
+	if (strlen(op) != token->len ||
 		memcmp(token->str, op, token->len) != 0)
 		return (NULL);
 	return (token);
@@ -35,8 +35,7 @@ Token	*peek(char *op)
 // そのトークンを返す｡それ以外の場合にはNULLを返す｡
 Token	*consume(char *op)
 {
-	if (strlen(op) != token->len ||
-		memcmp(token->str, op, token->len) != 0)
+	if (!peek(op))
 		return (NULL);
 	Token	*tok = token;
 	token = token->next;
@@ -60,23 +59,21 @@ Token	*consume_ident(void)
 // それ以外の場合にはエラーを報告する｡
 void	expect(char *op)
 {
-	if (token->kind != TK_RESERVED ||
-		strlen(op) != token->len ||
-		memcmp(token->str, op, token->len) != 0)
+	if (!peek(op))
 		error_at(token->str, "'%c'ではありません", op);
 	token = token->next;
 }
 
 // 次のトークンが数値の場合､トークンを1つ読み進めてその数値を返す｡
 // それ以外の場合にはエラーを報告する｡
-int	expect_number(void)
+size_t	expect_number(void)
 {
 	if (token->kind != TK_NUM)
 	{
 		error_at(token->str, "数ではありません");
 		exit(1);
 	}
-	int	val = token->val;
+	size_t	val = token->val;
 	token = token->next;
 	return (val);
 }

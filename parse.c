@@ -1,18 +1,36 @@
 #include "9cc.h"
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-VarList	*locals;
+static VarList	*globals;
+static VarList	*locals;
 
-// ローカル変数を名前で探す
-Var	*find_lvar(Token *tok)
+// 変数を変数リストから探す
+Var	*find_var_from(Token *tok, VarList *vars)
 {
-	for (VarList *vl = locals; vl; vl = vl->next)
+	if (!vars)
+		return (NULL);
+	for (VarList *vl = vars; vl; vl = vl->next)
 	{
 		if (strlen(vl->var->name) == tok->len && !strncmp(vl->var->name, tok->str, tok->len))
 			return (vl->var);
 	}
+	return (NULL);
+}
+
+// 宣言済み変数を探す
+Var	*find_lvar(Token *tok)
+{
+	Var	*v;
+
+	v = find_var_from(tok, locals);
+	if (v)
+		return (v);
+	v = find_var_from(tok, globals);
+	if (v)
+		return (v);
 	return (NULL);
 }
 
@@ -68,8 +86,8 @@ static Node	*new_var_node(Var *var, Token *tok)
 	return (node);
 }
 
-// 新規変数を作成
-static Var	*new_var(Type *type, char *name)
+// 新規変数定義
+static Var	*new_var(Type *type, char *name, VarList **add_to)
 {
 	Var	*var = (Var *)calloc(1, sizeof(Var));
 	if (!var)
@@ -82,14 +100,23 @@ static Var	*new_var(Type *type, char *name)
 	if (!vl)
 		exit_with_error();
 	vl->var = var;
-	vl->next = locals;
-	locals = vl;
+	vl->next = *add_to;
+	*add_to = vl;
 	return (var);
+}
+
+// 新規ローカル変数定義
+static Var	*new_local_var(Type *type, char *name)
+{
+	Var	*v = new_var(type, name, &locals);
+	v->is_local = true;
+	return (v);
 }
 
 static Function	*function(void);
 static VarList	*params(void);
 static Node		*stmt(void);
+static void		global_var(void);
 static Node		*declaration(void);
 static Node		*expr(void);
 static Node		*assign(void);
@@ -98,39 +125,66 @@ static Node		*relational(void);
 static Node		*add(void);
 static Node		*mul(void);
 static Node		*unary(void);
+static Node		*postfix(void);
 static Node		*primary(void);
 static Node		*args(void);
+static Type		*basetype(void);
+static Type		*read_type_suffix(Type *type);
 
-Function	*program(void)
+// 関数宣言かどうか
+static bool	is_function()
 {
-	Function	prog = {};
-	Function	*cur = &prog;
+	Token	*tok = token;
+	basetype();
+	bool isfunc = consume_ident() && consume("(");
+	token = tok;
+	return (isfunc);
+}
+
+Program	*program(void)
+{
+	Program		*prog;
+	Function	func = {};
+	Function	*fn = &func;
+
+	globals = NULL;
 
 	while (!at_eof())
 	{
-		cur->next = function();
-		cur = cur->next;
+		if (is_function())
+		{
+			fn->next = function();
+			fn = fn->next;
+		}
+		else
+			global_var();
 	}
-	return (prog.next);
+
+	prog = (Program *)calloc(1, sizeof(Program));
+	if (!prog)
+		exit_with_error();
+	prog->functions = func.next;
+	prog->globals = globals;
+	return (prog);
 }
 
-Function	*function(void)
+static Function	*function(void)
 {
 	locals = NULL;
 
-	// 返り値の型
-	expect_specified_ident("int");
+	// 戻り値の型
+	basetype();
 
-	// 関数名宣言
-	Token	*funcdec = consume_ident();
-	if (!funcdec)
-		error("関数宣言が不正です");
+	// 関数名定義
+	char	*funcname = expect_ident();
+	if (!funcname)
+		error_at(token->str, "不正な関数名です");
 
 	// 関数生成
 	Function	*func = (Function *)calloc(1, sizeof(Function));
 	if (!func)
 		exit_with_error();
-	func->name = substr(funcdec->str, funcdec->len);
+	func->name = funcname;
 
 	// 仮引数宣言
 	func->params = params();
@@ -153,25 +207,27 @@ Function	*function(void)
 
 static VarList	*params(void)
 {
+	Type	*type;
+
 	expect("(");
 
 	if (consume(")"))
 		return (NULL);
 
-	expect_specified_ident("int");
+	type = basetype();
 
 	VarList	*head = (VarList *)calloc(1, sizeof(VarList));
 	if (!head)
 		exit_with_error();
 	VarList	*cur = head;
-	cur->var = new_var(new_type(TYPE_INT, NULL), expect_ident());
+	cur->var = new_local_var(type, expect_ident());
 
 	while (!consume(")"))
 	{
 		expect(",");
-		expect_specified_ident("int");
+		type = basetype();
 		cur->next = (VarList *)calloc(1, sizeof(VarList));
-		cur->next->var = new_var(new_type(TYPE_INT, NULL), expect_ident());
+		cur->next->var = new_local_var(type, expect_ident());
 		cur = cur->next;
 	}
 
@@ -263,25 +319,32 @@ static Node	*stmt(void)
 	return (node);
 }
 
+static void	global_var(void)
+{
+	Type	*type = basetype();
+	Token	*dec = consume_ident();
+
+	if (peek("["))
+		type = read_type_suffix(type);
+	expect(";");
+	if (find_var_from(dec, globals))
+		error_at(dec->str, "すでに宣言されています");
+	new_var(type, substr(dec->str, dec->len), &globals);
+}
+
 static Node	*declaration(void)
 {
-	Token	*tok;
-	Type	*type;
+	Token	*tok = token;
+	Type	*ty = basetype();
 	Token	*var;
-
-	tok = consume_ident();
-	if (!tok)
-		error_at(tok->str, "不正な変数宣言です");
-
-	type = new_type(TYPE_INT, NULL);
-	while (consume("*"))
-		type = new_type(TYPE_PTR, type);
 
 	var = consume_ident();
 	if (!var)
 		error_at(var->str, "不正な変数宣言です");
 
-	new_var(type, substr(var->str, var->len));
+	ty = read_type_suffix(ty);
+
+	new_local_var(ty, substr(var->str, var->len));
 
 	return (new_node(ND_NULL, tok));
 }
@@ -383,7 +446,21 @@ static Node	*unary(void)
 		return (new_unary_node(ND_ADDR, unary(), tok));
 	if ((tok = consume("*")))
 		return (new_unary_node(ND_DEREF, unary(), tok));
-	return primary();
+	return (postfix());
+}
+
+static Node	*postfix(void)
+{
+	Token	*tok;
+	Node	*node = primary();
+
+	while ((tok = consume("[")))
+	{
+		node = new_binary_node(ND_ADD, node, expr(), tok);
+		expect("]");
+		node = new_unary_node(ND_DEREF, node, tok);
+	}
+	return (node);
 }
 
 static Node	*primary(void)
@@ -431,4 +508,28 @@ static Node	*args(void)
 	}
 	expect(")");
 	return (head);
+}
+
+static Type	*basetype(void)
+{
+	Type	*type;
+
+	expect("int");
+
+	type = new_type(TYPE_INT, NULL);
+
+	while(consume("*"))
+		type = new_type(TYPE_PTR, type);
+
+	return (type);
+}
+
+static Type	*read_type_suffix(Type *type)
+{
+	if (!consume("["))
+		return (type);
+	size_t	len = expect_number();
+	expect("]");
+	type = read_type_suffix(type);
+	return (new_type_array(TYPE_ARRAY, type, len));
 }

@@ -15,15 +15,15 @@ int	main(int argc, char **argv)
 	// トークナイズしてパースする
 	user_input = argv[1];
 	token = tokenize();
-	Function	*prog = program();
+	Program	*prog = program();
 	add_type(prog);
 
-	for (Function *f = prog; f; f = f->next)
+	for (Function *f = prog->functions; f; f = f->next)
 	{
 		size_t	offset = 0;
 		for (VarList *vl = f->locals; vl; vl = vl->next)
 		{
-			offset = offset + 8;
+			offset = offset + size_of(vl->var->type);
 			vl->var->offset = offset;
 		}
 		f->stack_size = offset;

@@ -9,13 +9,18 @@ static char		*funcname;
 
 static void	gen(Node *node);
 
-static void	gen_lval(Node *node)
+static void	gen_addr(Node *node)
 {
 	switch (node->kind)
 	{
 	case ND_VAR:
-		printf("\tlea rax, [rbp-%ld]\n", node->var->offset);
-		printf("\tpush rax\n");
+		if (node->var->is_local)
+		{
+			printf("\tlea rax, [rbp-%zu]\n", node->var->offset);
+			printf("\tpush rax\n");
+		}
+		else
+			printf("\tpush offset %s\n", node->var->name);
 		return ;
 	case ND_DEREF:
 		gen(node->lhs);
@@ -23,6 +28,13 @@ static void	gen_lval(Node *node)
 	default:
 		error("代入の左辺が変数ではありません");
 	}
+}
+
+static void	gen_lval(Node *node)
+{
+	if (node->type->kind == TYPE_ARRAY)
+		error_at(node->tok->str, "左辺値ではありません");
+	gen_addr(node);
 }
 
 static void	load(void)
@@ -59,46 +71,46 @@ static void	gen(Node *node)
 		printf("\tcmp rax, 0\n");
 		if (node->els)
 		{
-			printf("\tje .Lelse%ld\n", labelseq);
+			printf("\tje .Lelse%zu\n", labelseq);
 			gen(node->then);
-			printf("\tjmp .Lend%ld\n", labelseq);
-			printf(".Lelse%ld:\n", labelseq);
+			printf("\tjmp .Lend%zu\n", labelseq);
+			printf(".Lelse%zu:\n", labelseq);
 			gen(node->els);
-			printf("\tjmp .Lend%ld\n", labelseq);
+			printf("\tjmp .Lend%zu\n", labelseq);
 		}
 		else
 		{
-			printf("\tje .Lend%ld\n", labelseq);
+			printf("\tje .Lend%zu\n", labelseq);
 			gen(node->then);
 		}
-		printf(".Lend%ld:\n", labelseq);
+		printf(".Lend%zu:\n", labelseq);
 		labelseq++;
 		return ;
 	case ND_WHILE:
-		printf(".Lbegin%ld:\n", labelseq);
+		printf(".Lbegin%zu:\n", labelseq);
 		gen(node->cond);
 		printf("\tpop rax\n");
 		printf("\tcmp rax, 0\n");
-		printf("\tje .Lend%ld\n", labelseq);
+		printf("\tje .Lend%zu\n", labelseq);
 		gen(node->then);
-		printf("\tjmp .Lbegin%ld\n", labelseq);
-		printf(".Lend%ld:\n", labelseq);
+		printf("\tjmp .Lbegin%zu\n", labelseq);
+		printf(".Lend%zu:\n", labelseq);
 		labelseq++;
 		return ;
 	case ND_FOR:
 		gen(node->init);
-		printf(".Lbegin%ld:\n", labelseq);
+		printf(".Lbegin%zu:\n", labelseq);
 		if (node->cond)
 		{
 			gen(node->cond);
 			printf("\tpop rax\n");
 			printf("\tcmp rax, 0\n");
-			printf("\tje .Lend%ld\n", labelseq);
+			printf("\tje .Lend%zu\n", labelseq);
 		}
 		gen(node->then);
 		gen(node->inc);
-		printf("\tjmp .Lbegin%ld\n", labelseq);
-		printf(".Lend%ld:\n", labelseq);
+		printf("\tjmp .Lbegin%zu\n", labelseq);
+		printf(".Lend%zu:\n", labelseq);
 		labelseq++;
 		return ;
 	case ND_BLOCK:
@@ -111,15 +123,17 @@ static void	gen(Node *node)
 		store();
 		return ;
 	case ND_ADDR:
-		gen_lval(node->lhs);
+		gen_addr(node->lhs);
 		return ;
 	case ND_DEREF:
 		gen(node->lhs);
-		load();
+		if (node->type->kind != TYPE_ARRAY)
+			load();
 		return ;
 	case ND_VAR:
-		gen_lval(node);
-		load();
+		gen_addr(node);
+		if (node->type->kind != TYPE_ARRAY)
+			load();
 		return ;
 	case ND_FUNCALL:
 	{
@@ -137,16 +151,16 @@ static void	gen(Node *node)
 		// RSPのアライン
 		printf("\tmov rax, rsp\n");
 		printf("\tand rax, 15\n");
-		printf("\tjnz .L.call.%ld\n", labelseq);
+		printf("\tjnz .L.call.%zu\n", labelseq);
 		printf("\tmov rax, 0\n");
 		printf("\tcall %s\n", node->funcname);
-		printf("\tjmp .L.end.%ld\n", labelseq);
-		printf(".L.call.%ld:\n", labelseq);
+		printf("\tjmp .L.end.%zu\n", labelseq);
+		printf(".L.call.%zu:\n", labelseq);
 		printf("\tsub rsp, 8\n");
 		printf("\tmov rax, 0\n");
 		printf("\tcall %s\n", node->funcname);
 		printf("\tadd rsp, 8\n");
-		printf(".L.end.%ld:\n", labelseq);
+		printf(".L.end.%zu:\n", labelseq);
 		printf("\tpush rax\n");
 		labelseq++;
 		return ;
@@ -167,13 +181,13 @@ static void	gen(Node *node)
 	switch (node->kind)
 	{
 	case ND_ADD:
-		if (node->type->kind == TYPE_PTR)
-			printf("\timul rdi,8\n");
+		if (node->type->ptr_to)
+			printf("\timul rdi, %zu\n", size_of(node->type->ptr_to));
 		printf("\tadd rax, rdi\n");
 		break ;
 	case ND_SUB:
-		if (node->type->kind == TYPE_PTR)
-			printf("\timul rdi,8\n");
+		if (node->type->ptr_to)
+			printf("\timul rdi, %zu\n", size_of(node->type->ptr_to));
 		printf("\tsub rax, rdi\n");
 		break ;
 	case ND_MUL:
@@ -211,13 +225,20 @@ static void	gen(Node *node)
 	printf("\tpush rax\n");
 }
 
-void	codegen(Function *prog)
+static void	emit_data(VarList *globals)
 {
-	// シンタックス宣言
-	printf(".intel_syntax noprefix\n");
+	printf(".data\n");
+	for (VarList *glb = globals; glb; glb = glb->next)
+	{
+		printf("%s:\n", glb->var->name);
+		printf("\t.zero %zu\n", size_of(glb->var->type));
+	}
+}
 
-	// 先頭から順にコード生成
-	for (Function *func = prog; func; func = func->next)
+static void	emit_func(Function *functions)
+{
+	printf(".text\n");
+	for (Function *func = functions; func; func = func->next)
 	{
 		// 関数宣言
 		funcname = func->name;
@@ -227,12 +248,12 @@ void	codegen(Function *prog)
 		// プロローグ
 		printf("\tpush rbp\n");
 		printf("\tmov rbp, rsp\n");
-		printf("\tsub rsp, %ld\n", func->stack_size);
+		printf("\tsub rsp, %zu\n", func->stack_size);
 
 		// 受けた引数をスタックに積む
 		size_t	i = 0;
 		for (VarList *vl = func->params; vl; vl = vl->next)
-			printf("\tmov [rbp-%ld], %s\n", vl->var->offset, argreg[i++]);
+			printf("\tmov [rbp-%zu], %s\n", vl->var->offset, argreg[i++]);
 
 		// 関数の実装
 		for (Node *node = func->node; node; node = node->next)
@@ -244,4 +265,17 @@ void	codegen(Function *prog)
 		printf("\tpop rbp\n");
 		printf("\tret\n");
 	}
+
+}
+
+void	codegen(Program *prog)
+{
+	// シンタックス宣言
+	printf(".intel_syntax noprefix\n");
+
+	// グローバル変数宣言
+	emit_data(prog->globals);
+
+	// 先頭から順に関数のコード生成
+	emit_func(prog->functions);
 }
