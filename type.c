@@ -1,5 +1,6 @@
 #include "9cc.h"
 #include <stdlib.h>
+#include <string.h>
 
 // 型の宣言
 Type	*new_type(TypeKind tk, Type *ptr_to)
@@ -19,6 +20,15 @@ Type	*new_type_array(TypeKind tk, Type* ptr_to, size_t len)
 	Type	*type = new_type(tk, ptr_to);
 	type->array_len = len;
 	return (type);
+}
+
+Type	*new_type_from_str(char *str)
+{
+	if (!strncmp(str, "char", strlen("char")))
+		return (new_type(TYPE_CHAR, NULL));
+	if (!strncmp(str, "int", strlen("int")))
+		return (new_type(TYPE_INT, NULL));
+	return (NULL);
 }
 
 static void	visit(Node *node)

@@ -13,6 +13,9 @@ size_t	size_of(Type *type)
 	case TYPE_PTR:
 		return (8);
 
+	case TYPE_CHAR:
+		return (1);
+
 	default:
 		return (8);
 	}

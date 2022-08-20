@@ -1,5 +1,4 @@
 #include "9cc.h"
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -113,6 +112,15 @@ static Var	*new_local_var(Type *type, char *name)
 	return (v);
 }
 
+// 新規データラベル作成
+static char	*new_label()
+{
+	char			buf[sizeof(int) * 8];
+	static size_t	count = 0;
+	sprintf(buf, ".L.data.%zu", count++);
+	return (substr(buf, sizeof(int) * 8));
+}
+
 static Function	*function(void);
 static VarList	*params(void);
 static Node		*stmt(void);
@@ -139,6 +147,12 @@ static bool	is_function()
 	bool isfunc = consume_ident() && consume("(");
 	token = tok;
 	return (isfunc);
+}
+
+// 型名かどうか
+static bool	is_type_dec()
+{
+	return (peek("char") || peek("int"));
 }
 
 Program	*program(void)
@@ -307,7 +321,7 @@ static Node	*stmt(void)
 		return (node);
 	}
 
-	if ((tok = peek("int")))
+	if (is_type_dec())
 	{
 		node = declaration();
 		expect(";");
@@ -491,6 +505,16 @@ static Node	*primary(void)
 		return (new_var_node(lvar, tok));
 	}
 
+	tok = consume_string();
+	if (tok)
+	{
+		Type	*ty = new_type_array(TYPE_ARRAY, new_type(TYPE_CHAR, NULL), tok->clen);
+		Var		*v = new_var(ty, new_label(), &globals);
+		v->ctx = tok->ctx;
+		v->clen = tok->clen;
+		return (new_var_node(v, tok));
+	}
+
 	return (new_number_node(expect_number(), token));
 }
 
@@ -514,9 +538,7 @@ static Type	*basetype(void)
 {
 	Type	*type;
 
-	expect("int");
-
-	type = new_type(TYPE_INT, NULL);
+	type = expect_type();
 
 	while(consume("*"))
 		type = new_type(TYPE_PTR, type);

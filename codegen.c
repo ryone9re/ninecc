@@ -2,7 +2,8 @@
 #include <stdio.h>
 #include <string.h>
 
-static char		*argreg[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
+static char		*argreg1[] = {"dil", "sil", "dl", "cl", "r8b", "r9b"};
+static char		*argreg8[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
 
 static size_t	labelseq = 1;
 static char		*funcname;
@@ -37,19 +38,35 @@ static void	gen_lval(Node *node)
 	gen_addr(node);
 }
 
-static void	load(void)
+static void	load(Type *type)
 {
 	printf("\tpop rax\n");
-	printf("\tmov rax, [rax]\n");
+	switch (size_of(type))
+	{
+	case 1:
+		printf("\tmovsx rax, BYTE PTR [rax]\n");
+		break ;
+	default:
+		printf("\tmov rax, [rax]\n");
+		break ;
+	}
 	printf("\tpush rax\n");
 }
 
-static void	store(void)
+static void	store(Type *type)
 {
 	printf("\tpop rdi\n");
 	printf("\tpop rax\n");
-	printf("\tmov [rax], rdi\n");
-	// printf("\tpush rdi\n");
+	switch (size_of(type))
+	{
+	case 1:
+		printf("\tmov [rax], dil\n");
+		break ;
+	default:
+		printf("\tmov [rax], rdi\n");
+		break ;
+	}
+	printf("\tpush rdi\n");
 }
 
 static void	gen(Node *node)
@@ -120,7 +137,7 @@ static void	gen(Node *node)
 	case ND_ASSIGN:
 		gen_lval(node->lhs);
 		gen(node->rhs);
-		store();
+		store(node->type);
 		return ;
 	case ND_ADDR:
 		gen_addr(node->lhs);
@@ -128,12 +145,12 @@ static void	gen(Node *node)
 	case ND_DEREF:
 		gen(node->lhs);
 		if (node->type->kind != TYPE_ARRAY)
-			load();
+			load(node->type);
 		return ;
 	case ND_VAR:
 		gen_addr(node);
 		if (node->type->kind != TYPE_ARRAY)
-			load();
+			load(node->type);
 		return ;
 	case ND_FUNCALL:
 	{
@@ -146,7 +163,7 @@ static void	gen(Node *node)
 		}
 
 		for (size_t i = nargs; i; i--)
-			printf("\tpop %s\n", argreg[i - 1]);
+			printf("\tpop %s\n", argreg8[i - 1]);
 
 		// RSPのアライン
 		printf("\tmov rax, rsp\n");
@@ -231,7 +248,29 @@ static void	emit_data(VarList *globals)
 	for (VarList *glb = globals; glb; glb = glb->next)
 	{
 		printf("%s:\n", glb->var->name);
+
+		if (glb->var->ctx)
+		{
+			for (size_t i = 0; i < glb->var->clen; i++)
+				printf("\t.byte %d\n", glb->var->ctx[i]);
+			continue ;
+		}
+
 		printf("\t.zero %zu\n", size_of(glb->var->type));
+	}
+}
+
+// 受けた引数をスタックに積む
+static void	load_arg(Var *var, int idx)
+{
+	switch (size_of(var->type))
+	{
+	case 1:
+		printf("\tmov [rbp-%zu], %s\n", var->offset, argreg1[idx]);
+		break ;
+	default:
+		printf("\tmov [rbp-%zu], %s\n", var->offset, argreg8[idx]);
+		break ;
 	}
 }
 
@@ -253,7 +292,7 @@ static void	emit_func(Function *functions)
 		// 受けた引数をスタックに積む
 		size_t	i = 0;
 		for (VarList *vl = func->params; vl; vl = vl->next)
-			printf("\tmov [rbp-%zu], %s\n", vl->var->offset, argreg[i++]);
+			load_arg(vl->var, i++);
 
 		// 関数の実装
 		for (Node *node = func->node; node; node = node->next)

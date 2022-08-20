@@ -37,9 +37,10 @@ postfix		=	primary ("[" expr "]")*
 
 primary		=	"(" expr ")"
 			|	ident args?
+			|	string
 			|	num
 
 args		=	"(" (assign ("," assign)*)? ")"
 
-basetype	=	"int" "*"*
+basetype	=	("char" | "int") "*"*
 ```

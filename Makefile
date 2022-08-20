@@ -11,8 +11,11 @@ test: 9cc
 	./test.sh
 
 clean:
-	rm -rf 9cc *.o *~ tmp* *.out
+	rm -rf *.o *~ tmp* *.out
 
-re: clean 9cc
+fclean: clean
+	rm -rf 9cc
 
-.PHONY: test clean
+re: fclean 9cc
+
+.PHONY: test clean fclean

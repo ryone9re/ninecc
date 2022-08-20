@@ -6,6 +6,14 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+// 文字列ベクタ
+typedef struct StrVec	StrVec;
+struct StrVec
+{
+	char	*string;
+	StrVec	*next;
+};
+
 // トークンの種類
 typedef enum
 {
@@ -14,6 +22,7 @@ typedef enum
 	TK_IDENT,		// 識別子
 	TK_NUM,			// 整数トークン
 	TK_SIZEOF,		// sizeof演算子
+	TK_STRING,		// 文字列リテラル
 }	TokenKind;
 
 // トークン型
@@ -25,11 +34,15 @@ struct Token
 	size_t		val;	// KindがTK_NUMの場合､その数値
 	char		*str;	// トークン文字列
 	size_t		len;	// トークンの長さ
+
+	char		*ctx;	// 文字列リテラルの文字
+	size_t		clen;	// 文字列リテラルの長さ
 };
 
 // 型の種類
 typedef enum
 {
+	TYPE_CHAR,	// 文字型
 	TYPE_INT,	// 整数型
 	TYPE_PTR,	// ポインタ型
 	TYPE_ARRAY,	// 配列
@@ -54,6 +67,10 @@ struct Var
 
 	/* ローカル変数時 */
 	size_t		offset;		// RBPからのオフセット
+
+	/* 文字列リテラル */
+	char		*ctx;		// 文字列リテラル
+	size_t		clen;		// 文字列リテラルの長さ
 };
 
 // 変数のリスト
@@ -141,6 +158,8 @@ struct Program
 };
 
 /* グローバル変数宣言 */
+// ファイル名
+extern char		*filename;
 // 現在着目しているトークン
 extern Token	*token;
 // 入力プログラム
@@ -163,10 +182,12 @@ void	error_at(char *loc, char *fmt, ...);
 Token	*peek(char *op);
 Token	*consume(char *op);
 Token	*consume_ident(void);
+Token	*consume_string(void);
 void	expect(char *op);
 size_t	expect_number(void);
 char	*expect_ident(void);
 char	*expect_specified_ident(char *str);
+Type	*expect_type(void);
 bool	at_eof(void);
 int		is_tokstr(char c);
 Token	*tokenize(void);
@@ -174,6 +195,7 @@ Token	*tokenize(void);
 /* type.c */
 Type	*new_type(TypeKind tk, Type *ptr_to);
 Type	*new_type_array(TypeKind tk, Type* ptr_to, size_t len);
+Type	*new_type_from_str(char *str);
 void	add_type(Program *prog);
 
 /* utils.c */

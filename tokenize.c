@@ -12,8 +12,25 @@ void	error_at(char *loc, char *fmt, ...)
 	va_list	ap;
 	va_start(ap, fmt);
 
-	int	pos = loc - user_input;
-	fprintf(stderr, "%s\n", user_input);
+	char	*line = loc;
+	while (user_input < line && line[-1] != '\n')
+		line--;
+
+	char	*end = loc;
+	while (*end != '\n')
+		end++;
+
+	size_t	line_num = 1;
+	for (char *p = user_input; p < line; p++)
+	{
+		if (*p == '\n')
+			line_num++;
+	}
+
+	int	indent = fprintf(stderr, "%s:%zu: ", filename, line_num);
+	fprintf(stderr, "%.*s\n", (int)(end - line), line);
+
+	int	pos = loc - line + indent;
 	fprintf(stderr, "%*s", pos, " ");
 	fprintf(stderr, "^ ");
 	vfprintf(stderr, fmt, ap);
@@ -55,6 +72,19 @@ Token	*consume_ident(void)
 	return (NULL);
 }
 
+// 次のトークンが文字列リテラルの場合には､トークンを1つ読み進めて
+// そのトークンを返す｡それ以外の場合にはNULLを返す｡
+Token	*consume_string(void)
+{
+	if (token->kind == TK_STRING)
+	{
+		Token	*tok = token;
+		token = token->next;
+		return (tok);
+	}
+	return (NULL);
+}
+
 // 次のトークンが期待している記号のときには､トークンを1つ読み進める｡
 // それ以外の場合にはエラーを報告する｡
 void	expect(char *op)
@@ -69,10 +99,7 @@ void	expect(char *op)
 size_t	expect_number(void)
 {
 	if (token->kind != TK_NUM)
-	{
 		error_at(token->str, "数ではありません");
-		exit(1);
-	}
 	size_t	val = token->val;
 	token = token->next;
 	return (val);
@@ -83,10 +110,7 @@ size_t	expect_number(void)
 char	*expect_ident(void)
 {
 	if (token->kind != TK_IDENT)
-	{
 		error_at(token->str, "識別子ではありません");
-		exit(1);
-	}
 	char	*str = substr(token->str, token->len);
 	token = token->next;
 	return (str);
@@ -97,17 +121,26 @@ char	*expect_ident(void)
 char	*expect_specified_ident(char *str)
 {
 	if (token->kind != TK_IDENT)
-	{
 		error_at(token->str, "指定された識別子ではありません");
-		exit(1);
-	}
 	if (strncmp(token->str, str, token->len))
-	{
 		error_at(token->str, "指定された識別子ではありません");
-		exit(1);
-	}
 	token = token->next;
 	return (str);
+}
+
+// 次のトークンが型名の場合､トークンを1つ読み進めて型を返す｡
+// それ以外の場合にはエラーを報告する｡
+Type	*expect_type(void)
+{
+	Type	*ty;
+
+	if (token->kind != TK_IDENT)
+		error_at(token->str, "不正な型名です");
+	ty = new_type_from_str(token->str);
+	if (!ty)
+		error_at(token->str, "不正な型名です");
+	token = token->next;
+	return (ty);
 }
 
 // 終端チェック
@@ -206,6 +239,25 @@ Token	*tokenize(void)
 			continue ;
 		}
 
+		// 行コメント
+		if (strncmp(p, "//", 2) == 0)
+		{
+			p += 2;
+			while (*p != '\n')
+				p++;
+			continue ;
+		}
+
+		// ブロックコメント
+		if (strncmp(p, "/*", 2) == 0)
+		{
+			char	*q = strstr(p + 2, "*/");
+			if (!q)
+				error_at(p, "コメントが閉じられていません");
+			p = q + 2;
+			continue ;
+		}
+
 		// ブロック
 		if (*p == '{' || *p == '}')
 		{
@@ -236,6 +288,22 @@ Token	*tokenize(void)
 		// 区切り文字
 		if (ispunct(*p))
 		{
+			// 文字列リテラル
+			if (*p == '"')
+			{
+				char	*start = p++;
+
+				while (*p && *p != '"')
+					p++;
+				if (!*p)
+					error_at(p, "文字列リテラルが閉じられていません");
+				p++;
+				cur = new_token(TK_STRING, cur, start, p - start);
+				cur->ctx = substr(start + 1, p - start - 2);
+				cur->clen = p - start - 1;
+				continue ;
+			}
+
 			cur = new_token(TK_RESERVED, cur, p++, 1);
 			continue ;
 		}
