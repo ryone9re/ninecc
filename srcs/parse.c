@@ -1,5 +1,8 @@
 #include "9cc.h"
+#include "error.h"
 #include "struct.h"
+#include "tokenize.h"
+#include "types.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -122,10 +125,13 @@ static char	*new_label()
 	return (substr(buf, sizeof(int) * 8));
 }
 
+static Type		*basetype(void);
+static Type		*suffix(Type *type);
+static void		func_dec(void);
+static void		global_var(void);
 static Function	*function(void);
 static VarList	*params(void);
 static Node		*stmt(void);
-static void		global_var(void);
 static Node		*declaration(void);
 static Node		*expr(void);
 static Node		*assign(void);
@@ -137,21 +143,44 @@ static Node		*unary(void);
 static Node		*postfix(void);
 static Node		*primary(void);
 static Node		*args(void);
-static Type		*basetype(void);
-static Type		*read_type_suffix(Type *type);
+
+// 返り値を宣言してるかどうか
+static bool	read_basetype(void)
+{
+	expect_type();
+	while (consume("*"))
+		;
+	return (true);
+}
+
+// 関数定義かどうか
+static bool	is_funcdef(void)
+{
+	Token	*tok = token;
+	bool isfunc = read_basetype() && consume_ident() && consume("(");
+	if (!isfunc)
+	{
+		token = tok;
+		return (isfunc);
+	}
+	while (token->kind != TK_RESERVED || strncmp(token->str, ")", token->len))
+		token = token->next;
+	isfunc = consume(")") && isfunc && consume("{");
+	token = tok;
+	return (isfunc);
+}
 
 // 関数宣言かどうか
 static bool	is_function()
 {
 	Token	*tok = token;
-	basetype();
-	bool isfunc = consume_ident() && consume("(");
+	bool isfunc = read_basetype() && consume_ident() && peek("(");
 	token = tok;
 	return (isfunc);
 }
 
 // 型名かどうか
-static bool	is_type_dec()
+static bool	is_type_dec(void)
 {
 	return (peek("char") || peek("int"));
 }
@@ -166,11 +195,13 @@ Program	*program(void)
 
 	while (!at_eof())
 	{
-		if (is_function())
+		if (is_funcdef())
 		{
 			fn->next = function();
 			fn = fn->next;
 		}
+		else if (is_function())
+			func_dec();
 		else
 			global_var();
 	}
@@ -181,6 +212,55 @@ Program	*program(void)
 	prog->functions = func.next;
 	prog->globals = globals;
 	return (prog);
+}
+
+static Type	*basetype(void)
+{
+	Token	*tok = expect_type();
+	Type	*type = new_type_from_str(tok->str);
+
+	while(consume("*"))
+		type = new_type(TYPE_PTR, type);
+
+	return (type);
+}
+
+static Type	*suffix(Type *type)
+{
+	if (!consume("["))
+		return (type);
+	size_t	len = expect_number();
+	expect("]");
+	type = suffix(type);
+	return (new_type_array(TYPE_ARRAY, type, len));
+}
+
+static void	func_dec(void)
+{
+	basetype();
+	Token	*dec = consume_ident();
+	if (!dec)
+		error_at(dec->str, "返り値の方が不正です");
+	expect("(");
+	while (token->kind != TK_RESERVED || strncmp(token->str, ")", token->len))
+		token = token->next;
+	expect(")");
+	expect(";");
+}
+
+static void	global_var(void)
+{
+	Type	*type = basetype();
+	Token	*dec = consume_ident();
+	if (!dec)
+		error_at(dec->str, "返り値の型が不正です");
+
+	if (peek("["))
+		type = suffix(type);
+	expect(";");
+	if (find_var_from(dec, globals))
+		error_at(dec->str, "すでに宣言されています");
+	new_var(type, substr(dec->str, dec->len), &globals);
 }
 
 static Function	*function(void)
@@ -334,19 +414,6 @@ static Node	*stmt(void)
 	return (node);
 }
 
-static void	global_var(void)
-{
-	Type	*type = basetype();
-	Token	*dec = consume_ident();
-
-	if (peek("["))
-		type = read_type_suffix(type);
-	expect(";");
-	if (find_var_from(dec, globals))
-		error_at(dec->str, "すでに宣言されています");
-	new_var(type, substr(dec->str, dec->len), &globals);
-}
-
 static Node	*declaration(void)
 {
 	Token	*tok = token;
@@ -358,7 +425,7 @@ static Node	*declaration(void)
 	if (!vardec)
 		error_at(vardec->str, "不正な変数宣言です");
 
-	ty = read_type_suffix(ty);
+	ty = suffix(ty);
 
 	var = new_local_var(ty, substr(vardec->str, vardec->len));
 
@@ -541,26 +608,4 @@ static Node	*args(void)
 	}
 	expect(")");
 	return (head);
-}
-
-static Type	*basetype(void)
-{
-	Type	*type;
-
-	type = expect_type();
-
-	while(consume("*"))
-		type = new_type(TYPE_PTR, type);
-
-	return (type);
-}
-
-static Type	*read_type_suffix(Type *type)
-{
-	if (!consume("["))
-		return (type);
-	size_t	len = expect_number();
-	expect("]");
-	type = read_type_suffix(type);
-	return (new_type_array(TYPE_ARRAY, type, len));
 }

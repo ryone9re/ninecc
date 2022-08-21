@@ -95,17 +95,14 @@ char	*expect_specified_ident(char *str)
 
 // 次のトークンが型名の場合､トークンを1つ読み進めて型を返す｡
 // それ以外の場合にはエラーを報告する｡
-Type	*expect_type(void)
+Token	*expect_type(void)
 {
-	Type	*ty;
+	Token	*tok = token;
 
-	if (token->kind != TK_IDENT)
-		error_at(token->str, "不正な型名です");
-	ty = new_type_from_str(token->str);
-	if (!ty)
-		error_at(token->str, "不正な型名です");
+	if (tok->kind != TK_IDENT)
+		error_at(tok->str, "不正な型名です");
 	token = token->next;
-	return (ty);
+	return (tok);
 }
 
 // 終端チェック

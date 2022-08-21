@@ -169,4 +169,6 @@ assert 10 'int main() { int x = 5; int y; y = 2; return x * y;  }'
 assert 1 'int main() { return 3 % 2; }'
 assert 0 'int main() { return 5 % 5;  }'
 
+assert 100 'int putcher(); int main() { return 100; }'
+
 echo OK

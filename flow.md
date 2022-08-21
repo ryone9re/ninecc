@@ -1,9 +1,13 @@
 ```
-program		=	(global_var | function)*
+program		=	(func_dec | global_var | function)*
 
 basetype	=	("char" | "int") "*"*
 
-global_var	=	basetype ident ("[" num "]")* ";"
+suffix		=	("[" num "]")
+
+func_dec	=	basetype ident params ";"
+
+global_var	=	basetype ident suffix* ";"
 
 function	=	basetype ident params "{" stmt* "}"
 
@@ -17,7 +21,7 @@ stmt		=	"return" expr ";"
 			|	declaration ";"
 			|	expr ";"
 
-declaration	=	basetype ident ("[" num "]")* ("=" assign)?
+declaration	=	basetype ident suffix* ("=" assign)?
 
 expr		=	assign
 

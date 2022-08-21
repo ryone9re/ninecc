@@ -12,7 +12,7 @@ void	expect(char *op);
 size_t	expect_number(void);
 char	*expect_ident(void);
 char	*expect_specified_ident(char *str);
-Type	*expect_type(void);
+Token	*expect_type(void);
 bool	at_eof(void);
 Token	*tokenize(void);
 
