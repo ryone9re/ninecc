@@ -55,7 +55,7 @@ Token	*consume_string(void)
 void	expect(char *op)
 {
 	if (!peek(op))
-		error_at(token->str, "'%c'ではありません", op);
+		error_at(token->str, "'%s'ではありません", op);
 	token = token->next;
 }
 
