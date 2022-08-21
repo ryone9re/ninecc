@@ -1,5 +1,5 @@
 #ifndef EXTERN_H
-#define EXTERN_H
+# define EXTERN_H
 
 #include "struct.h"
 
