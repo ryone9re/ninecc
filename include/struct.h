@@ -1,5 +1,5 @@
-#ifndef TYPE_H
-#define TYPE_H
+#ifndef STRUCT_H
+# define STRUCT_H
 
 #include "include.h"
 
@@ -146,4 +146,4 @@ struct Program
 	VarList		*globals;
 };
 
-#endif /* TYPE_H */
+#endif /* STRUCT_H */

@@ -15,7 +15,7 @@ stmt		=	"return" expr ";"
 			|	declaration ";"
 			|	expr ";"
 
-declaration	=	basetype ident ("[" num "]")*
+declaration	=	basetype ident ("[" num "]")* ("=" assign)?
 
 expr		=	assign
 
