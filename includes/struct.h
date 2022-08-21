@@ -87,6 +87,10 @@ typedef enum
 	ND_GTE,		// >=
 	ND_EQ,		// ==
 	ND_NEQ,		// !=
+	ND_PRE_INC,	// 前置インクリメント
+	ND_PRE_DEC,	// 前置デクリメント
+	ND_POS_INC,	// 後置インクリメント
+	ND_POS_DEC,	// 後置デクリメント
 	ND_ADDR,	// アドレス演算子(&)
 	ND_DEREF,	// 間接演算子(*)
 	ND_RETURN,	// return

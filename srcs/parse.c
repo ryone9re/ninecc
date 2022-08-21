@@ -546,9 +546,9 @@ static Node	*unary(void)
 	if ((tok = consume("*")))
 		return (new_unary_node(ND_DEREF, unary(), tok));
 	if ((tok = consume("++")))
-		return (new_binary_node(ND_ADD, unary(), new_number_node(1, tok), tok));
+		return (new_unary_node(ND_PRE_INC, unary(), tok));
 	if ((tok = consume("--")))
-		return (new_binary_node(ND_SUB, unary(), new_number_node(1, tok), tok));
+		return (new_unary_node(ND_PRE_DEC, unary(), tok));
 	return (postfix());
 }
 
@@ -557,11 +557,26 @@ static Node	*postfix(void)
 	Token	*tok;
 	Node	*node = primary();
 
-	while ((tok = consume("[")))
+	while (true)
 	{
-		node = new_binary_node(ND_ADD, node, expr(), tok);
-		expect("]");
-		node = new_unary_node(ND_DEREF, node, tok);
+		if ((tok = consume("[")))
+		{
+			node = new_binary_node(ND_ADD, node, expr(), tok);
+			expect("]");
+			node = new_unary_node(ND_DEREF, node, tok);
+			continue ;
+		}
+		if ((tok = consume("++")))
+		{
+			node = new_unary_node(ND_POS_INC, node, tok);
+			continue ;
+		}
+		if ((tok = consume("--")))
+		{
+			node = new_unary_node(ND_POS_DEC, node, tok);
+			continue ;
+		}
+		break ;
 	}
 	return (node);
 }

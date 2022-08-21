@@ -40,7 +40,7 @@ unary		=	"sizeof" unary
 			|	("++" | "--") unary
 			|	postfix
 
-postfix		=	primary ("[" expr "]")*
+postfix		=	primary ("[" expr "]" | "++" | "--")*
 
 primary		=	"(" expr ")"
 			|	ident args?

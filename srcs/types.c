@@ -56,12 +56,17 @@ static void	visit(Node *node)
 		return ;
 	case ND_MUL:
 	case ND_DIV:
-	case ND_EQ:
-	case ND_NEQ:
+	case ND_MOD:
 	case ND_LT:
 	case ND_LTE:
 	case ND_GT:
 	case ND_GTE:
+	case ND_EQ:
+	case ND_NEQ:
+	case ND_PRE_INC:
+	case ND_PRE_DEC:
+	case ND_POS_INC:
+	case ND_POS_DEC:
 	case ND_FUNCALL:
 	case ND_NUM:
 		node->type = new_type(TYPE_INT, NULL);

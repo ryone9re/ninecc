@@ -1,4 +1,6 @@
 #include "9cc.h"
+#include "size.h"
+#include "struct.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -69,6 +71,26 @@ static void	store(Type *type)
 	printf("\tpush rdi\n");
 }
 
+static void	increment(Node *node)
+{
+	printf("\tpop rax\n");
+	if (node->type->ptr_to)
+		printf("\tadd rax, %zu\n", size_of(node->type->ptr_to));
+	else
+		printf("\tadd rax, 1\n");
+	printf("\tpush rax\n");
+}
+
+static void	decrement(Node *node)
+{
+	printf("\tpop rax\n");
+	if (node->type->ptr_to)
+		printf("\tsub rax, %zu\n", size_of(node->type->ptr_to));
+	else
+		printf("\tsub rax, 1\n");
+	printf("\tpush rax\n");
+}
+
 static void	gen(Node *node)
 {
 	if (node == NULL)
@@ -76,6 +98,36 @@ static void	gen(Node *node)
 	switch (node->kind)
 	{
 	case ND_NULL:
+		return ;
+	case ND_PRE_INC:
+		gen_lval(node->lhs);
+		printf("\tpush [rsp]\n");
+		load(node->type);
+		increment(node);
+		store(node->type);
+		return ;
+	case ND_PRE_DEC:
+		gen_lval(node->lhs);
+		printf("\tpush [rsp]\n");
+		load(node->type);
+		decrement(node);
+		store(node->type);
+		return ;
+	case ND_POS_INC:
+		gen_lval(node->lhs);
+		printf("\tpush [rsp]\n");
+		load(node->type);
+		increment(node);
+		store(node->type);
+		decrement(node);
+		return ;
+	case ND_POS_DEC:
+		gen_lval(node->lhs);
+		printf("\tpush [rsp]\n");
+		load(node->type);
+		decrement(node);
+		store(node->type);
+		increment(node);
 		return ;
 	case ND_RETURN:
 		gen(node->lhs);
