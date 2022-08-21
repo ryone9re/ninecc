@@ -171,4 +171,10 @@ assert 0 'int main() { return 5 % 5;  }'
 
 assert 100 'int putcher(); int main() { return 100; }'
 
+assert 2 'int main() { int x = 1; int y = ++x; return y; }'
+assert 3 'int main() { int x = 1; int y = ++x; int z = ++y;  return z; }'
+
+assert 10 'int main() { int x = 11; int y = --x; return y; }'
+assert 5 'int main() { int x = 7; int y = --x; int z = --y;  return z; }'
+
 echo OK

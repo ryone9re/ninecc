@@ -16,7 +16,7 @@ params		=	"(" (basetype ident ("," basetype ident)*)? ")"
 stmt		=	"return" expr ";"
 			|	"if" "(" expr ")" stmt ("else" stmt)?
 			|	"while" "(" expr ")" stmt
-			|	"for" "(" expr? ";" expr? ";" expr? ")" stmt
+			|	"for" "(" (declaration | (expr ("," expr)*))? ";" expr? ";" (expr, ("," expr)*)? ")" stmt
 			|	"{" stmt* "}"
 			|	declaration ";"
 			|	expr ";"
@@ -37,6 +37,7 @@ mul			=	unary ("*" unary | "/" unary | "%" unary)*
 
 unary		=	"sizeof" unary
 			|	("+" | "-" | "&" | "*")? unary
+			|	("++" | "--") unary
 			|	postfix
 
 postfix		=	primary ("[" expr "]")*

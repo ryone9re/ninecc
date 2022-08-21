@@ -21,8 +21,8 @@ int	main(int argc, char **argv)
 
 	// トークナイズしてパースする
 	filename = argv[1];
-	user_input = read_file(filename);
-	// user_input = filename;
+	// user_input = read_file(filename);
+	user_input = filename;
 	token = tokenize();
 	Program	*prog = program();
 	add_type(prog);

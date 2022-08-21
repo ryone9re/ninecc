@@ -115,7 +115,8 @@ static void	gen(Node *node)
 		labelseq++;
 		return ;
 	case ND_FOR:
-		gen(node->init);
+		for (Node *n = node->init; n; n = n->next)
+			gen(n);
 		printf(".Lbegin%zu:\n", labelseq);
 		if (node->cond)
 		{
@@ -125,7 +126,8 @@ static void	gen(Node *node)
 			printf("\tje .Lend%zu\n", labelseq);
 		}
 		gen(node->then);
-		gen(node->inc);
+		for (Node *n = node->inc; n; n = n->next)
+			gen(n);
 		printf("\tjmp .Lbegin%zu\n", labelseq);
 		printf(".Lend%zu:\n", labelseq);
 		labelseq++;

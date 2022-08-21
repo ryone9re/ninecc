@@ -369,7 +369,14 @@ static Node	*stmt(void)
 		node = new_node(ND_FOR, tok);
 		if (!consume(";"))
 		{
-			node->init = expr();
+			if (is_type_dec())
+				node->init = declaration();
+			else
+			{
+				node->init = expr();
+				for (Node *n = node->init->next; consume(","); n = n->next)
+					n = expr();
+			}
 			expect(";");
 		}
 		if (!consume(";"))
@@ -380,6 +387,8 @@ static Node	*stmt(void)
 		if (!consume(")"))
 		{
 			node->inc = expr();
+			for (Node *n = node->inc->next; consume(","); n = n->next)
+				n = expr();
 			expect(")");
 		}
 		node->then = stmt();
@@ -536,6 +545,10 @@ static Node	*unary(void)
 		return (new_unary_node(ND_ADDR, unary(), tok));
 	if ((tok = consume("*")))
 		return (new_unary_node(ND_DEREF, unary(), tok));
+	if ((tok = consume("++")))
+		return (new_binary_node(ND_ADD, unary(), new_number_node(1, tok), tok));
+	if ((tok = consume("--")))
+		return (new_binary_node(ND_SUB, unary(), new_number_node(1, tok), tok));
 	return (postfix());
 }
 
