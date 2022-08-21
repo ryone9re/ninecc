@@ -1,20 +1,19 @@
-CFLAGS=-std=c11 -g -static -Wall -Werror -Wextra
-SRCS=$(wildcard *.c)
+INCLUDE=-I./include
+CFLAGS=-std=c11 -g -static -Wall -Werror -Wextra $(INCLUDE)
+SRCS=$(wildcard srcs/*.c)
 OBJS=$(SRCS:.c=.o)
 
 9cc: $(OBJS)
 	$(CC) -o 9cc $(OBJS) $(LDFLAGS)
 
-$(OBJS): 9cc.h
-
 test: 9cc
 	./test.sh
 
 clean:
-	rm -rf *.o *~ tmp* *.out
+	$(RM) *.o *~ tmp* *.out */*.o */tmp* */*.out
 
 fclean: clean
-	rm -rf 9cc
+	$(RM) 9cc
 
 re: fclean 9cc
 

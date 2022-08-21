@@ -1,20 +1,9 @@
-#ifndef NINECC_H
-# define NINECC_H
+#ifndef TYPE_H
+#define TYPE_H
 
-/* includes */
-#include <errno.h>
-#include <stdbool.h>
-#include <stddef.h>
+#include "include.h"
 
-// 文字列ベクタ
-typedef struct StrVec	StrVec;
-struct StrVec
-{
-	char	*string;
-	StrVec	*next;
-};
-
-// トークンの種類
+/* トークンの種類 */
 typedef enum
 {
 	TK_EOF,			// 入力の終わりを示すトークン
@@ -25,7 +14,7 @@ typedef enum
 	TK_STRING,		// 文字列リテラル
 }	TokenKind;
 
-// トークン型
+/* トークン型 */
 typedef struct Token	Token;
 struct Token
 {
@@ -39,7 +28,7 @@ struct Token
 	size_t		clen;	// 文字列リテラルの長さ
 };
 
-// 型の種類
+/* 型の種類 */
 typedef enum
 {
 	TYPE_CHAR,	// 文字型
@@ -48,7 +37,7 @@ typedef enum
 	TYPE_ARRAY,	// 配列
 }	TypeKind;
 
-// 型の構造
+/* 型の構造 */
 typedef struct Type Type;
 struct Type
 {
@@ -57,7 +46,7 @@ struct Type
 	size_t		array_len;	// 配列の長さ
 };
 
-// 変数の型
+/* 変数の型 */
 typedef struct Var		Var;
 struct Var
 {
@@ -73,7 +62,7 @@ struct Var
 	size_t		clen;		// 文字列リテラルの長さ
 };
 
-// 変数のリスト
+/* 変数のリスト */
 typedef struct VarList	VarList;
 struct VarList
 {
@@ -81,7 +70,7 @@ struct VarList
 	Var		*var;	// 変数
 };
 
-// 抽象構文木のノードの種類
+/* 抽象構文木のノードの種類 */
 typedef enum
 {
 	ND_NULL,	// 空
@@ -109,7 +98,7 @@ typedef enum
 	ND_NUM,		// 整数
 }	NodeKind;
 
-// 抽象構文木のノードの型
+/* 抽象構文木のノードの型 */
 typedef struct Node		Node;
 struct Node
 {
@@ -131,7 +120,7 @@ struct Node
 	// Block
 	Node		*body;
 
-	// 関数宣言呼び出し
+	// 関数呼び出し
 	char		*funcname;	// 関数名
 	Node		*args;		// 実引数
 
@@ -157,50 +146,4 @@ struct Program
 	VarList		*globals;
 };
 
-/* グローバル変数宣言 */
-// ファイル名
-extern char		*filename;
-// 現在着目しているトークン
-extern Token	*token;
-// 入力プログラム
-extern char		*user_input;
-
-/* プロトタイプ宣言 */
-
-/* codegen.c */
-Var		*find_lvar(Token *tok);
-void	codegen(Program *prog);
-
-/* parse.c */
-Program	*program(void);
-
-/* size.c */
-size_t	size_of(Type *type);
-
-/* tokenize.c */
-void	error_at(char *loc, char *fmt, ...);
-Token	*peek(char *op);
-Token	*consume(char *op);
-Token	*consume_ident(void);
-Token	*consume_string(void);
-void	expect(char *op);
-size_t	expect_number(void);
-char	*expect_ident(void);
-char	*expect_specified_ident(char *str);
-Type	*expect_type(void);
-bool	at_eof(void);
-int		is_tokstr(char c);
-Token	*tokenize(void);
-
-/* type.c */
-Type	*new_type(TypeKind tk, Type *ptr_to);
-Type	*new_type_array(TypeKind tk, Type* ptr_to, size_t len);
-Type	*new_type_from_str(char *str);
-void	add_type(Program *prog);
-
-/* utils.c */
-void	error(char *fmt, ...);
-void	exit_with_error(void);
-char	*substr(char *str, size_t len);
-
-#endif /* NINECC_H */
+#endif /* TYPE_H */

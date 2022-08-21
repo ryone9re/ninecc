@@ -1,42 +1,7 @@
 #include "9cc.h"
 #include <ctype.h>
-#include <stdarg.h>
-#include <stddef.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-// エラー箇所を報告する
-void	error_at(char *loc, char *fmt, ...)
-{
-	va_list	ap;
-	va_start(ap, fmt);
-
-	char	*line = loc;
-	while (user_input < line && line[-1] != '\n')
-		line--;
-
-	char	*end = loc;
-	while (*end != '\n')
-		end++;
-
-	size_t	line_num = 1;
-	for (char *p = user_input; p < line; p++)
-	{
-		if (*p == '\n')
-			line_num++;
-	}
-
-	int	indent = fprintf(stderr, "%s:%zu: ", filename, line_num);
-	fprintf(stderr, "%.*s\n", (int)(end - line), line);
-
-	int	pos = loc - line + indent;
-	fprintf(stderr, "%*s", pos, " ");
-	fprintf(stderr, "^ ");
-	vfprintf(stderr, fmt, ap);
-	fprintf(stderr, "\n");
-	exit(1);
-}
 
 // 次のトークンが期待している文字のときにはそのトークンを返す｡
 // トークンは読み進めない｡
@@ -163,7 +128,7 @@ static Token	*new_token(TokenKind kind, Token *cur, char *str, size_t len)
 }
 
 // identifierを構成する文字か判定
-int	is_tokstr(char c)
+static bool	is_tokstr(char c)
 {
 	return (isalnum(c) || c == '_');
 }
@@ -258,13 +223,6 @@ Token	*tokenize(void)
 			continue ;
 		}
 
-		// ブロック
-		if (*p == '{' || *p == '}')
-		{
-			cur = new_token(TK_RESERVED, cur, p++, 1);
-			continue;
-		}
-
 		// 予約語
 		char	*q = starts_with_reserved(p);
 		if (q)
@@ -286,24 +244,8 @@ Token	*tokenize(void)
 		}
 
 		// 区切り文字
-		if (ispunct(*p))
+		if (strchr("+-*/()<>;={},&[].,!~|^:?", *p))
 		{
-			// 文字列リテラル
-			if (*p == '"')
-			{
-				char	*start = p++;
-
-				while (*p && *p != '"')
-					p++;
-				if (!*p)
-					error_at(p, "文字列リテラルが閉じられていません");
-				p++;
-				cur = new_token(TK_STRING, cur, start, p - start);
-				cur->ctx = substr(start + 1, p - start - 2);
-				cur->clen = p - start - 1;
-				continue ;
-			}
-
 			cur = new_token(TK_RESERVED, cur, p++, 1);
 			continue ;
 		}
@@ -315,6 +257,22 @@ Token	*tokenize(void)
 			while (is_tokstr(*p))
 				p++;
 			cur = new_token(TK_IDENT, cur, q, p - q);
+			continue ;
+		}
+
+		// 文字列リテラル
+		if (*p == '"')
+		{
+			char	*start = p++;
+
+			while (*p && *p != '"')
+				p++;
+			if (!*p)
+				error_at(p, "文字列リテラルが閉じられていません");
+			p++;
+			cur = new_token(TK_STRING, cur, start, p - start);
+			cur->ctx = substr(start + 1, p - start - 2);
+			cur->clen = p - start - 1;
 			continue ;
 		}
 
