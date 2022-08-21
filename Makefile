@@ -1,4 +1,4 @@
-INCLUDE=-I./include
+INCLUDE=-I./includes
 CFLAGS=-std=c11 -g -static -Wall -Werror -Wextra $(INCLUDE)
 SRCS=$(wildcard srcs/*.c)
 OBJS=$(SRCS:.c=.o)

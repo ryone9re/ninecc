@@ -1,6 +1,8 @@
 ```
 program		=	(global_var | function)*
 
+basetype	=	("char" | "int") "*"*
+
 global_var	=	basetype ident ("[" num "]")* ";"
 
 function	=	basetype ident params "{" stmt* "}"
@@ -41,6 +43,4 @@ primary		=	"(" expr ")"
 			|	num
 
 args		=	"(" (assign ("," assign)*)? ")"
-
-basetype	=	("char" | "int") "*"*
 ```

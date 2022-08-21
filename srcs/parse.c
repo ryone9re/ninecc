@@ -1,4 +1,5 @@
 #include "9cc.h"
+#include "struct.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -350,17 +351,23 @@ static Node	*declaration(void)
 {
 	Token	*tok = token;
 	Type	*ty = basetype();
-	Token	*var;
+	Token	*vardec;
+	Var		*var;
 
-	var = consume_ident();
-	if (!var)
-		error_at(var->str, "不正な変数宣言です");
+	vardec = consume_ident();
+	if (!vardec)
+		error_at(vardec->str, "不正な変数宣言です");
 
 	ty = read_type_suffix(ty);
 
-	new_local_var(ty, substr(var->str, var->len));
+	var = new_local_var(ty, substr(vardec->str, vardec->len));
 
-	return (new_node(ND_NULL, tok));
+	if (!peek("="))
+		return (new_node(ND_NULL, tok));
+
+	expect("=");
+
+	return (new_binary_node(ND_ASSIGN, new_var_node(var, tok), assign(), tok));
 }
 
 static Node	*expr(void)
