@@ -78,6 +78,7 @@ typedef enum
 	ND_SUB,		// -
 	ND_MUL,		// *
 	ND_DIV,		// /
+	ND_MOD,		// %
 	ND_SIZEOF,	// sizeof
 	ND_ASSIGN,	// =
 	ND_LT,		// <

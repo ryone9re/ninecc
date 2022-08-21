@@ -214,6 +214,11 @@ static void	gen(Node *node)
 		printf("\tcqo\n");
 		printf("\tidiv rdi\n");
 		break ;
+	case ND_MOD:
+		printf("\tcqo\n");
+		printf("\tidiv rdi\n");
+		printf("\tpush rdx\n");
+		return ;
 	case ND_LT:
 	case ND_GT:
 	case ND_LTE:

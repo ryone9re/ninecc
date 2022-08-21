@@ -448,6 +448,8 @@ static Node	*mul(void)
 			node = new_binary_node(ND_MUL, node, unary(), tok);
 		else if ((tok = consume("/")))
 			node = new_binary_node(ND_DIV, node, unary(), tok);
+		else if ((tok = consume("%")))
+			node = new_binary_node(ND_MOD, node, unary(), tok);
 		else
 			return (node);
 	}
