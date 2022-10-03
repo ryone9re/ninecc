@@ -1,20 +1,21 @@
-INCLUDE=-I./includes
-CFLAGS=-std=c11 -g -static -Wall -Werror -Wextra $(INCLUDE)
-SRCS=$(wildcard srcs/*.c)
+NAME=ninecc
+
+CFLAGS=-std=c11 -g -fno-common -Wall -Wextra -Werror -Wno-switch
+SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)
 
-9cc: $(OBJS)
-	$(CC) -o 9cc $(OBJS) $(LDFLAGS)
+$(NAME): $(OBJS)
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
-test: 9cc
+test: $(NAME)
 	./test.sh
 
 clean:
 	$(RM) *.o *~ tmp* *.out */*.o */tmp* */*.out
 
 fclean: clean
-	$(RM) 9cc
+	$(RM) $(NAME)
 
-re: fclean 9cc
+re: fclean $(NAME)
 
 .PHONY: test clean fclean

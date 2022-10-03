@@ -1,51 +1,53 @@
-```
-program		=	(func_dec | global_var | function)*
+# Flow
 
-basetype	=	("char" | "int") "*"*
+```text
+program  = (func_dec | global_var | function)*
 
-suffix		=	("[" num "]")
+basetype = ("char" | "int") "*"*
 
-func_dec	=	basetype ident params ";"
+suffix  = ("[" num "]")
 
-global_var	=	basetype ident suffix* ";"
+func_dec = basetype ident params ";"
 
-function	=	basetype ident params "{" stmt* "}"
+global_var = basetype ident suffix* ";"
 
-params		=	"(" (basetype ident ("," basetype ident)*)? ")"
+function = basetype ident params "{" stmt* "}"
 
-stmt		=	"return" expr ";"
-			|	"if" "(" expr ")" stmt ("else" stmt)?
-			|	"while" "(" expr ")" stmt
-			|	"for" "(" (declaration | (expr ("," expr)*))? ";" expr? ";" (expr, ("," expr)*)? ")" stmt
-			|	"{" stmt* "}"
-			|	declaration ";"
-			|	expr ";"
+params  = "(" (basetype ident ("," basetype ident)*)? ")"
 
-declaration	=	basetype ident suffix* ("=" assign)?
+stmt  = "return" expr ";"
+   | "if" "(" expr ")" stmt ("else" stmt)?
+   | "while" "(" expr ")" stmt
+   | "for" "(" (declaration | (expr ("," expr)*))? ";" expr? ";" (expr, ("," expr)*)? ")" stmt
+   | "{" stmt* "}"
+   | declaration ";"
+   | expr ";"
 
-expr		=	assign
+declaration = basetype ident suffix* ("=" assign)?
 
-assign		=	equality ("=" assign)?
+expr  = assign
 
-equality	=	relational ("==" relational | "!=" relational)*
+assign  = equality ("=" assign)?
 
-relational	=	add ("<" add | "<=" add | ">" add | ">=" add)*
+equality = relational ("==" relational | "!=" relational)*
 
-add			=	mul ("+" mul | "-" mul)*
+relational = add ("<" add | "<=" add | ">" add | ">=" add)*
 
-mul			=	unary ("*" unary | "/" unary | "%" unary)*
+add   = mul ("+" mul | "-" mul)*
 
-unary		=	"sizeof" unary
-			|	("+" | "-" | "&" | "*")? unary
-			|	("++" | "--") unary
-			|	postfix
+mul   = unary ("*" unary | "/" unary | "%" unary)*
 
-postfix		=	primary ("[" expr "]" | "++" | "--")*
+unary  = "sizeof" unary
+   | ("+" | "-" | "&" | "*")? unary
+   | ("++" | "--") unary
+   | postfix
 
-primary		=	"(" expr ")"
-			|	ident args?
-			|	string
-			|	num
+postfix  = primary ("[" expr "]" | "++" | "--")*
 
-args		=	"(" (assign ("," assign)*)? ")"
+primary  = "(" expr ")"
+   | ident args?
+   | string
+   | num
+
+args  = "(" (assign ("," assign)*)? ")"
 ```
