@@ -9,7 +9,9 @@
             "type": "lldb",
             "request": "launch",
             "program": "${workspaceFolder}/a.out",
-            "args": [],
+            "args": [
+                "test/test.c"
+            ],
             "cwd": "${fileDirname}",
             "preLaunchTask": "Build"
         }

@@ -13,7 +13,8 @@
 
 /* 構造体 */
 /* トークンの種類 */
-typedef enum {
+typedef enum
+{
   TK_EOF,      // 入力の終わりを示すトークン
   TK_RESERVED, // 予約語
   TK_IDENT,    // 識別子
@@ -24,7 +25,8 @@ typedef enum {
 
 /* トークン型 */
 typedef struct Token Token;
-struct Token {
+struct Token
+{
   TokenKind kind; // トークンの型
   Token *next;    // 次の入力トークン
   size_t val;     // KindがTK_NUMの場合､その数値
@@ -36,7 +38,8 @@ struct Token {
 };
 
 /* 型の種類 */
-typedef enum {
+typedef enum
+{
   TYPE_CHAR,  // 文字型
   TYPE_INT,   // 整数型
   TYPE_PTR,   // ポインタ型
@@ -45,7 +48,8 @@ typedef enum {
 
 /* 型の構造 */
 typedef struct Type Type;
-struct Type {
+struct Type
+{
   TypeKind kind;    // 型の種類
   Type *ptr_to;     // ポインタ型の場合､その指し示す先
   size_t array_len; // 配列の長さ
@@ -53,7 +57,8 @@ struct Type {
 
 /* 変数の型 */
 typedef struct Var Var;
-struct Var {
+struct Var
+{
   Type *type;    // 変数の型
   char *name;    // 変数の名前
   bool is_local; // ローカル変数かどうか
@@ -68,13 +73,15 @@ struct Var {
 
 /* 変数のリスト */
 typedef struct VarList VarList;
-struct VarList {
+struct VarList
+{
   VarList *next; // 次の変数
   Var *var;      // 変数
 };
 
 /* 抽象構文木のノードの種類 */
-typedef enum {
+typedef enum
+{
   ND_NULL,    // 空
   ND_ADD,     // +
   ND_SUB,     // -
@@ -107,7 +114,8 @@ typedef enum {
 
 /* 抽象構文木のノードの型 */
 typedef struct Node Node;
-struct Node {
+struct Node
+{
   NodeKind kind; // ノードの型
   Token *tok;    // ノードに対応するトークン
   Node *next;    // 次のNode
@@ -135,7 +143,8 @@ struct Node {
 };
 
 typedef struct Function Function;
-struct Function {
+struct Function
+{
   Function *next;
   char *name;
   Node *node;
@@ -145,7 +154,8 @@ struct Function {
 };
 
 typedef struct Program Program;
-struct Program {
+struct Program
+{
   Function *functions;
   VarList *globals;
 };
@@ -196,6 +206,7 @@ Type *new_type_from_str(char *str);
 void add_type(Program *prog);
 
 /* utils.c */
+char *remove_escape_string(char *str);
 char *substr(char *str, size_t len);
 
 #endif /* NINECC_H */

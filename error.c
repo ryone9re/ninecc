@@ -1,7 +1,8 @@
 #include "ninecc.h"
 
 // printfと同じ引数を取る
-void error(char *fmt, ...) {
+void error(char *fmt, ...)
+{
   va_list ap;
   va_start(ap, fmt);
   vfprintf(stderr, fmt, ap);
@@ -10,19 +11,24 @@ void error(char *fmt, ...) {
 }
 
 // エラー箇所を報告する
-void error_at(char *loc, char *fmt, ...) {
+void error_at(char *loc, char *fmt, ...)
+{
   va_list ap;
   va_start(ap, fmt);
 
   char *line = loc;
-  while (user_input < line && line[-1] != '\n') line--;
+  while (user_input < line && line[-1] != '\n')
+    line--;
 
   char *end = loc;
-  while (*end != '\n') end++;
+  while (*end != '\n')
+    end++;
 
   size_t line_num = 1;
-  for (char *p = user_input; p < line; p++) {
-    if (*p == '\n') line_num++;
+  for (char *p = user_input; p < line; p++)
+  {
+    if (*p == '\n')
+      line_num++;
   }
 
   int indent = fprintf(stderr, "%s:%zu: ", filename, line_num);
@@ -37,7 +43,8 @@ void error_at(char *loc, char *fmt, ...) {
 }
 
 // エラーメッセージを出力して終了
-void exit_with_error(void) {
+void exit_with_error(void)
+{
   fprintf(stderr, "%s\n", strerror(errno));
   exit(errno);
 }

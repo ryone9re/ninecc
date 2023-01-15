@@ -180,7 +180,6 @@ assert 5 'int main() { int x = 7; int y = --x; int z = --y;  return z; }'
 assert 10 'int main() { int x = 10; int y = x++; return y; }'
 assert 10 'int main() { int x = 10; int y = x--; return y; }'
 
-# TODO Add \a, \b, \t, \n \v, \f, \r and \e
 assert 7 'int main() { return "\a"[0]; }'
 assert 8 'int main() { return "\b"[0]; }'
 assert 9 'int main() { return "\t"[0]; }'
@@ -198,5 +197,13 @@ assert 7 'int main() { return "\ax\ny"[0]; }'
 assert 120 'int main() { return "\ax\ny"[1]; }'
 assert 10 'int main() { return "\ax\ny"[2]; }'
 assert 121 'int main() { return "\ax\ny"[3]; }'
+
+assert 0 'int main() { return ({ 0; }); }'
+assert 2 'int main() { return ({ 0; 1; 2; }); }'
+assert 1 'int main() { ({ 0; return 1; 2; }); return 3; }'
+assert 3 'int main() { return ({ int x=3; x; }); }'
+
+assert 2 'int main() { /* return 1; */ return 2; }'
+assert 2 'int main() { // return 1;
 
 echo OK
